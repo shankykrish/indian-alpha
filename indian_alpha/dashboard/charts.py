@@ -32,7 +32,7 @@ def create_dark_layout(fig: go.Figure, title: str, xaxis_title: str = "", yaxis_
         legend=dict(
             bgcolor='rgba(10,10,15,0.8)',
             bordercolor='rgba(255,255,255,0.1)',
-            tickfont=dict(color='#ffffff')
+            font=dict(color='#ffffff')
         ),
         margin=dict(l=40, r=40, t=60, b=40)
     )
