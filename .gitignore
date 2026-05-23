@@ -1,0 +1,22 @@
+# Python Cache
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Environments
+.venv/
+venv/
+ENV/
+env/
+
+# IDE and System Files
+.idea/
+.vscode/
+.DS_Store
+*.tmp
+
+# Exclude local trade execution histories but keep structure
+state/snapshots/portfolio_*.json
+state/snapshots/rankings_*.json
+state/history/strategy_v*.yaml
+state/history/app.log

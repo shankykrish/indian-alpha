@@ -1,0 +1,26 @@
+version: '3.8'
+
+services:
+  worker-service:
+    build: .
+    container_name: indian-alpha-worker
+    volumes:
+      - ./state:/app/state
+    environment:
+      - TZ=Asia/Kolkata
+      - PYTHONUNBUFFERED=1
+    restart: unless-stopped
+    command: python -m indian_alpha.run
+
+  dashboard-service:
+    build: .
+    container_name: indian-alpha-dashboard
+    ports:
+      - "8501:8501"
+    volumes:
+      - ./state:/app/state
+    environment:
+      - TZ=Asia/Kolkata
+      - PYTHONUNBUFFERED=1
+    restart: unless-stopped
+    command: streamlit run indian_alpha/dashboard/app.py

@@ -1,0 +1,257 @@
+{
+  "last_updated": "2026-05-23T15:15:23.765491",
+  "rankings": [
+    {
+      "symbol": "BHEL.NS",
+      "name": "Bharat Heavy Electricals Limited",
+      "sector": "Industrials",
+      "theme": "PSU",
+      "market_cap_cr": 142259.6898816,
+      "pe_ratio": 88.43073,
+      "close": 408.54998779296875,
+      "pct_change_1d": 0.09800169115911393,
+      "factors": {
+        "rs_vs_nifty": 66.02583405981082,
+        "rs_vs_sector": 46.21808384186757,
+        "momentum_persistence": 5.9378744369743535,
+        "delivery_expansion": 0.4521562471343971,
+        "breakout_proximity_pct": 2.237378856203492
+      },
+      "composite_score": 80.81467581195369
+    },
+    {
+      "symbol": "HAL.NS",
+      "name": "Hindustan Aeronautics Limited",
+      "sector": "Industrials",
+      "theme": "PSU",
+      "market_cap_cr": 292147.6653056,
+      "pe_ratio": 32.052242,
+      "close": 4368.39990234375,
+      "pct_change_1d": -0.04576240263339389,
+      "factors": {
+        "rs_vs_nifty": 12.000101512567444,
+        "rs_vs_sector": 8.40007105879721,
+        "momentum_persistence": 1.0636789902320234,
+        "delivery_expansion": 0.9494726131498854,
+        "breakout_proximity_pct": 9.67474973098744
+      },
+      "composite_score": 55.51505020856834
+    },
+    {
+      "symbol": "TATASTEEL.NS",
+      "name": "Tata Steel Limited",
+      "sector": "Basic Materials",
+      "theme": "General",
+      "market_cap_cr": 260898.5800704,
+      "pe_ratio": 28.5,
+      "close": 209.19000244140625,
+      "pct_change_1d": 0.2924540248329511,
+      "factors": {
+        "rs_vs_nifty": 7.640659978409356,
+        "rs_vs_sector": 5.348461984886549,
+        "momentum_persistence": -0.10089153573985961,
+        "delivery_expansion": 1.4849754278514635,
+        "breakout_proximity_pct": 6.778071242771285
+      },
+      "composite_score": 46.65276956828803
+    },
+    {
+      "symbol": "NHPC.NS",
+      "name": "NHPC Limited",
+      "sector": "Utilities",
+      "theme": "PSU",
+      "market_cap_cr": 78712.8909824,
+      "pe_ratio": 28.288809,
+      "close": 78.36000061035156,
+      "pct_change_1d": -0.8101258096815664,
+      "factors": {
+        "rs_vs_nifty": 12.465889149324395,
+        "rs_vs_sector": 8.726122404527077,
+        "momentum_persistence": -1.2308927869209771,
+        "delivery_expansion": 1.0895059015215962,
+        "breakout_proximity_pct": 9.75469427857807
+      },
+      "composite_score": 44.483122118120114
+    },
+    {
+      "symbol": "BEL.NS",
+      "name": "Bharat Electronics Limited",
+      "sector": "Industrials",
+      "theme": "PSU",
+      "market_cap_cr": 304488.8281088,
+      "pe_ratio": 50.247284,
+      "close": 416.54998779296875,
+      "pct_change_1d": -0.9157959465773962,
+      "factors": {
+        "rs_vs_nifty": 2.0679510851706313,
+        "rs_vs_sector": 1.4475657596194418,
+        "momentum_persistence": -3.369088388817406,
+        "delivery_expansion": 1.4100880029476857,
+        "breakout_proximity_pct": 7.082311145335699
+      },
+      "composite_score": 42.43080046848672
+    },
+    {
+      "symbol": "INFY.NS",
+      "name": "Infosys Limited",
+      "sector": "Technology",
+      "theme": "General",
+      "market_cap_cr": 475321.073664,
+      "pe_ratio": 15.221617,
+      "close": 1174.5,
+      "pct_change_1d": -0.5672156661730252,
+      "factors": {
+        "rs_vs_nifty": -5.963421333835973,
+        "rs_vs_sector": -4.174394933685181,
+        "momentum_persistence": 0.8767234674306049,
+        "delivery_expansion": 1.347786001684003,
+        "breakout_proximity_pct": 2.684565726957573
+      },
+      "composite_score": 40.94002135475379
+    },
+    {
+      "symbol": "RELIANCE.NS",
+      "name": "Reliance Industries Limited",
+      "sector": "Energy",
+      "theme": "General",
+      "market_cap_cr": 1832973.3431296,
+      "pe_ratio": 22.677048,
+      "close": 1354.5,
+      "pct_change_1d": 0.36307235497208146,
+      "factors": {
+        "rs_vs_nifty": 2.669953932082069,
+        "rs_vs_sector": 1.8689677524574482,
+        "momentum_persistence": 1.0725586244811314,
+        "delivery_expansion": 0.744780926407244,
+        "breakout_proximity_pct": 8.069772121888374
+      },
+      "composite_score": 38.232276389890835
+    },
+    {
+      "symbol": "SJVN.NS",
+      "name": "SJVN Limited",
+      "sector": "Utilities",
+      "theme": "PSU",
+      "market_cap_cr": 28722.87232,
+      "pe_ratio": 44.84049,
+      "close": 73.08999633789062,
+      "pct_change_1d": -0.5172245494742396,
+      "factors": {
+        "rs_vs_nifty": 4.30737433341336,
+        "rs_vs_sector": 3.015162033389352,
+        "momentum_persistence": -2.19971092410305,
+        "delivery_expansion": 1.03866462069903,
+        "breakout_proximity_pct": 11.939763448324548
+      },
+      "composite_score": 38.0492000356048
+    },
+    {
+      "symbol": "ITC.NS",
+      "name": "ITC Limited",
+      "sector": "Consumer Defensive",
+      "theme": "General",
+      "market_cap_cr": 378014.0859392,
+      "pe_ratio": 18.28485,
+      "close": 301.70001220703125,
+      "pct_change_1d": -2.061345832678666,
+      "factors": {
+        "rs_vs_nifty": -0.4946892356109636,
+        "rs_vs_sector": -0.3462824649276745,
+        "momentum_persistence": 0.11428161242061378,
+        "delivery_expansion": 1.2198716396288243,
+        "breakout_proximity_pct": 5.095936458158038
+      },
+      "composite_score": 37.28544395595249
+    },
+    {
+      "symbol": "IRCON.NS",
+      "name": "Ircon International Limited",
+      "sector": "Industrials",
+      "theme": "PSU",
+      "market_cap_cr": 13251.8658048,
+      "pe_ratio": 22.259083,
+      "close": 140.89999389648438,
+      "pct_change_1d": -0.8793528340987953,
+      "factors": {
+        "rs_vs_nifty": 1.275944192565185,
+        "rs_vs_sector": 0.8931609347956295,
+        "momentum_persistence": -2.3898878357919524,
+        "delivery_expansion": 0.5645603540373488,
+        "breakout_proximity_pct": 14.294404423638204
+      },
+      "composite_score": 36.50342001732654
+    },
+    {
+      "symbol": "RVNL.NS",
+      "name": "Rail Vikas Nigam Limited",
+      "sector": "Industrials",
+      "theme": "PSU",
+      "market_cap_cr": 56524.898304,
+      "pe_ratio": 49.29091,
+      "close": 271.1000061035156,
+      "pct_change_1d": 0.12927279908240996,
+      "factors": {
+        "rs_vs_nifty": -5.894504776994709,
+        "rs_vs_sector": -4.126153343896296,
+        "momentum_persistence": -5.499756679073311,
+        "delivery_expansion": 1.144161496302838,
+        "breakout_proximity_pct": 12.955532034686076
+      },
+      "composite_score": 32.442980685285164
+    },
+    {
+      "symbol": "ICICIBANK.NS",
+      "name": "ICICI Bank Limited",
+      "sector": "Financial Services",
+      "theme": "General",
+      "market_cap_cr": 906385.948672,
+      "pe_ratio": 16.920504,
+      "close": 1264.300048828125,
+      "pct_change_1d": 1.7299645281051461,
+      "factors": {
+        "rs_vs_nifty": -2.094366222618288,
+        "rs_vs_sector": -1.4660563558328017,
+        "momentum_persistence": -3.3191536695472594,
+        "delivery_expansion": 1.208970341478949,
+        "breakout_proximity_pct": 5.359680685487065
+      },
+      "composite_score": 30.038351497011227
+    },
+    {
+      "symbol": "HDFCBANK.NS",
+      "name": "HDFC Bank Limited",
+      "sector": "Financial Services",
+      "theme": "General",
+      "market_cap_cr": 1180582.4909312,
+      "pe_ratio": 17.123716,
+      "close": 766.7999877929688,
+      "pct_change_1d": 1.0077011305915122,
+      "factors": {
+        "rs_vs_nifty": -8.664910580233988,
+        "rs_vs_sector": -6.065437406163791,
+        "momentum_persistence": -1.2735091987843152,
+        "delivery_expansion": 0.9282385222625357,
+        "breakout_proximity_pct": 4.335350324897707
+      },
+      "composite_score": 24.81475644096939
+    },
+    {
+      "symbol": "TCS.NS",
+      "name": "Tata Consultancy Services Limited",
+      "sector": "Technology",
+      "theme": "General",
+      "market_cap_cr": 838419.4019328,
+      "pe_ratio": 17.035213,
+      "close": 2317.300048828125,
+      "pct_change_1d": -0.42539973149985877,
+      "factors": {
+        "rs_vs_nifty": -6.49084116694308,
+        "rs_vs_sector": -4.543588816860156,
+        "momentum_persistence": -1.9111783123724313,
+        "delivery_expansion": 1.223756866430565,
+        "breakout_proximity_pct": 7.244926408455281
+      },
+      "composite_score": 24.29606881685124
+    }
+  ]
+}

@@ -1,0 +1,1 @@
+railway url dashboard-service-production-da41.up.railway.app
