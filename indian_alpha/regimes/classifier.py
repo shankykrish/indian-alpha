@@ -27,7 +27,8 @@ class MarketRegimeClassifier:
         along with complete statistical telemetry.
         """
         now = datetime.now()
-        start_date = (now - timedelta(days=250)).strftime("%Y-%m-%d")
+        # 365 calendar days ensures we have enough data (at least 200 trading days) to calculate 200 DMA
+        start_date = (now - timedelta(days=365)).strftime("%Y-%m-%d")
         end_date = now.strftime("%Y-%m-%d")
 
         try:

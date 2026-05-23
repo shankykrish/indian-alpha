@@ -7,6 +7,8 @@ from indian_alpha.observability.metrics import global_metrics
 
 from indian_alpha.config import SNAPSHOTS_DIR
 
+from indian_alpha.storage.utils import clean_json_data
+
 def save_portfolio_snapshot(snapshot_data: Dict[str, Any], base_dir: str = SNAPSHOTS_DIR) -> None:
     """Saves a detailed portfolio snapshot atomically."""
     try:
@@ -18,6 +20,9 @@ def save_portfolio_snapshot(snapshot_data: Dict[str, Any], base_dir: str = SNAPS
         
         # Add metadata
         snapshot_data["timestamp"] = timestamp.isoformat()
+        
+        # Clean data to ensure JSON compliance (handles NaNs and Infs safely)
+        snapshot_data = clean_json_data(snapshot_data)
         
         temp_path = f"{file_path}.tmp"
         with open(temp_path, "w") as f:

@@ -19,6 +19,8 @@ def load_regimes_history(file_path: str = REGIMES_FILE) -> List[Dict[str, Any]]:
         logger.error(f"Error loading regime history from {file_path}: {e}")
         return []
 
+from indian_alpha.storage.utils import clean_json_data
+
 def save_regime_classification(
     regime_info: Dict[str, Any], 
     file_path: str = REGIMES_FILE
@@ -39,6 +41,9 @@ def save_regime_classification(
         if len(history) > 1000:
             history = history[-1000:]
             
+        # Clean data to ensure JSON compliance (handles NaNs and Infs safely)
+        history = clean_json_data(history)
+        
         temp_path = f"{file_path}.tmp"
         with open(temp_path, "w") as f:
             json.dump(history, f, indent=2)

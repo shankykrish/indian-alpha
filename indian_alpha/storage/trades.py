@@ -31,11 +31,16 @@ def load_trades(file_path: str = TRADES_FILE) -> List[Dict[str, Any]]:
         
     return trades
 
+from indian_alpha.storage.utils import clean_json_data
+
 def save_trade(trade: Dict[str, Any], file_path: str = TRADES_FILE) -> None:
     """Appends a paper trade to the JSONL log file atomically."""
     try:
         # Create directory if missing
         os.makedirs(os.path.dirname(file_path), exist_ok=True)
+        
+        # Clean data to ensure JSON compliance (handles NaNs and Infs safely)
+        trade = clean_json_data(trade)
         
         # Append atomically using a lock isn't strictly necessary for single worker appending,
         # but let's make sure it writes with clean line breaks.

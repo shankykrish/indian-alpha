@@ -19,6 +19,8 @@ def load_rankings(file_path: str = RANKINGS_FILE) -> Dict[str, Any]:
         logger.error(f"Error loading rankings from {file_path}: {e}")
         return {"last_updated": None, "rankings": []}
 
+from indian_alpha.storage.utils import clean_json_data
+
 def save_rankings(rankings_data: Dict[str, Any], file_path: str = RANKINGS_FILE) -> None:
     """Saves composite stock rankings atomically and takes a timestamped snapshot."""
     try:
@@ -26,6 +28,9 @@ def save_rankings(rankings_data: Dict[str, Any], file_path: str = RANKINGS_FILE)
         
         # Add timestamp
         rankings_data["last_updated"] = datetime.now().isoformat()
+        
+        # Clean data to ensure JSON compliance (handles NaNs and Infs safely)
+        rankings_data = clean_json_data(rankings_data)
         
         # Write atomically
         temp_path = f"{file_path}.tmp"

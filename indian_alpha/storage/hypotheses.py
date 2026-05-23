@@ -29,6 +29,8 @@ def load_hypotheses(file_path: str = HYPOTHESES_FILE) -> List[Dict[str, Any]]:
         
     return hypotheses
 
+from indian_alpha.storage.utils import clean_json_data
+
 def save_hypothesis(hypothesis: Dict[str, Any], file_path: str = HYPOTHESES_FILE) -> None:
     """Appends a new reflection hypothesis to the JSONL log file atomically."""
     try:
@@ -37,6 +39,9 @@ def save_hypothesis(hypothesis: Dict[str, Any], file_path: str = HYPOTHESES_FILE
         # Ensure timestamp is set
         if "timestamp" not in hypothesis:
             hypothesis["timestamp"] = datetime.now().isoformat()
+            
+        # Clean data to ensure JSON compliance (handles NaNs and Infs safely)
+        hypothesis = clean_json_data(hypothesis)
             
         with open(file_path, "a") as f:
             f.write(json.dumps(hypothesis) + "\n")
