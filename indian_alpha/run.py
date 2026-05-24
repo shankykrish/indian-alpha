@@ -22,6 +22,7 @@ from indian_alpha.scheduler import IndianMarketScheduler
 from indian_alpha.storage.trades import save_trade, load_trades
 from indian_alpha.storage.market_regimes import save_regime_classification, load_regimes_history
 from indian_alpha.storage.hypotheses import load_hypotheses
+from indian_alpha.storage.universes import MIDCAP_100, SMALLCAP_100
 
 class IndianAlphaWorker:
     """
@@ -39,12 +40,9 @@ class IndianAlphaWorker:
         self.reflector = SelfLearningReflectionEngine()
         self.validator = WalkForwardValidator()
         
-        # Universe basket to trade (Default NSE momentum candidates)
-        self.universe = [
-            "RELIANCE.NS", "TCS.NS", "INFY.NS", "HDFCBANK.NS", "ICICIBANK.NS",
-            "HAL.NS", "BEL.NS", "RVNL.NS", "IRCON.NS", "L&T.NS",
-            "TATASTEEL.NS", "SJVN.NS", "NHPC.NS", "BHEL.NS", "ITC.NS"
-        ]
+        # Universe basket to trade dynamically loaded from Midcap and Smallcap indexes
+        self.universe = MIDCAP_100 + SMALLCAP_100
+
 
     def stop(self):
         self.running = False
