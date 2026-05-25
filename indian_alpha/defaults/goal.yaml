@@ -1,0 +1,31 @@
+regime_aware_targets:
+  bull_low_vol:
+    target_return_30d: 0.30
+    max_drawdown: 0.12
+    min_sharpe: 1.2
+    min_win_rate: 0.58
+  bull_high_vol:
+    target_return_30d: 0.25
+    max_drawdown: 0.15
+    min_sharpe: 1.0
+    min_win_rate: 0.55
+  sideways:
+    target_return_30d: 0.10
+    max_drawdown: 0.08
+    min_sharpe: 0.5
+    min_win_rate: 0.45
+  bear:
+    target_return_30d: 0.05
+    max_drawdown: 0.06
+    min_sharpe: 0.2
+    min_win_rate: 0.40
+  panic:
+    target_return_30d: 0.00
+    max_drawdown: 0.04
+    min_sharpe: -0.5
+    min_win_rate: 0.30
+  recovery:
+    target_return_30d: 0.18
+    max_drawdown: 0.10
+    min_sharpe: 0.8
+    min_win_rate: 0.50

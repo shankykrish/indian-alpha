@@ -27,6 +27,7 @@ RUN uv pip install --system -r pyproject.toml
 
 # Copy project files
 COPY indian_alpha /app/indian_alpha/
+COPY run_all.py /app/run_all.py
 
 # Create persistent state directory structures
 RUN mkdir -p /app/state/snapshots /app/state/history
@@ -42,5 +43,5 @@ ENV STREAMLIT_SERVER_ADDRESS=0.0.0.0
 ENV STREAMLIT_SERVER_HEADLESS=true
 ENV STREAMLIT_THEME_BASE=dark
 
-# The actual entrypoint is overridden in docker-compose.yml or Railway service config.
-CMD ["python", "-m", "indian_alpha.run"]
+# Start the combined services orchestrator
+CMD ["python", "run_all.py"]
