@@ -101,8 +101,11 @@ class IndianAlphaWorker:
                     logger.info("FAST_RUN dry-run completed successfully. Exiting background daemon.")
                     break
                     
-                # Hourly delay during active markets, longer during standby
-                delay = 3600 if mode == "active_market" else 7200
+                # Dynamically calculate the next trigger time to align precisely with the clock
+                next_trigger = self.scheduler.get_next_trigger_time()
+                now_ist = self.scheduler.get_current_ist_time()
+                delay = max(10, int((next_trigger - now_ist).total_seconds()))
+                logger.info(f"Next trigger scheduled at: {next_trigger.strftime('%Y-%m-%d %H:%M:%S %Z')}")
                 logger.info(f"Execution cycle complete. Sleeping for {delay} seconds...")
                 
                 # Sleep in smaller increments to check shutdown status

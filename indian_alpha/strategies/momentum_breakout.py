@@ -1,6 +1,9 @@
 import pandas as pd
 from typing import Dict, Any, List, Optional
 from loguru import logger
+import os
+import pytz
+from datetime import datetime, time
 
 class MomentumBreakoutStrategy:
     """
@@ -51,19 +54,36 @@ class MomentumBreakoutStrategy:
                 if last_close <= high_20d:
                     return {"action": "HOLD", "price": 0.0, "reason": f"Price ({last_close:.2f}) did not break 20-day high ({high_20d:.2f})"}
 
+            # Calculate dynamic volume scale factor based on elapsed time of the trading day
+            # Market is active from 09:15 to 15:30 IST (375 minutes)
+            is_fast_run = os.getenv("FAST_RUN", "false").lower() == "true"
+            now_ist = datetime.now(pytz.timezone("Asia/Kolkata"))
+            
+            if is_fast_run or now_ist.strftime("%A") in ["Saturday", "Sunday"] or now_ist.time() >= time(15, 20):
+                fraction = 1.0
+            elif now_ist.time() <= time(9, 15):
+                fraction = 0.05
+            else:
+                market_start = datetime.combine(now_ist.date(), time(9, 15))
+                market_start = pytz.timezone("Asia/Kolkata").localize(market_start)
+                elapsed_minutes = (now_ist - market_start).total_seconds() / 60.0
+                fraction = min(1.0, max(0.05, elapsed_minutes / 375.0))
+
             # --- RULE 3: Volume Expansion Ratio ---
             avg_vol_20d = volume.iloc[-20:].mean()
             vol_expansion = volume.iloc[-1] / avg_vol_20d if avg_vol_20d > 0 else 1.0
-            min_vol_exp = entry_config.get("volume_expansion_ratio", 1.8)
+            raw_min_vol_exp = entry_config.get("volume_expansion_ratio", 1.8)
+            min_vol_exp = raw_min_vol_exp * fraction
             if vol_expansion < min_vol_exp:
-                return {"action": "HOLD", "price": 0.0, "reason": f"Volume expansion {vol_expansion:.2f}x below threshold {min_vol_exp}x"}
+                return {"action": "HOLD", "price": 0.0, "reason": f"Volume expansion {vol_expansion:.2f}x below scaled threshold {min_vol_exp:.2f}x (Raw: {raw_min_vol_exp}x, Fraction: {fraction:.2f})"}
 
             # --- RULE 4: Delivery Volume Ratio ---
             del_pct = df.get("delivery_pct", pd.Series([0.4] * len(df))).iloc[-1]
             del_expansion = (volume.iloc[-1] * del_pct) / (avg_vol_20d * 0.4) if avg_vol_20d > 0 else 1.0
-            min_del_exp = entry_config.get("delivery_volume_ratio", 1.5)
+            raw_min_del_exp = entry_config.get("delivery_volume_ratio", 1.5)
+            min_del_exp = raw_min_del_exp * fraction
             if del_expansion < min_del_exp:
-                return {"action": "HOLD", "price": 0.0, "reason": f"Delivery volume expansion {del_expansion:.2f}x below threshold {min_del_exp}x"}
+                return {"action": "HOLD", "price": 0.0, "reason": f"Delivery volume expansion {del_expansion:.2f}x below scaled threshold {min_del_exp:.2f}x (Raw: {raw_min_del_exp}x, Fraction: {fraction:.2f})"}
 
             # --- RULE 5: Relative Strength vs Nifty & Sector ---
             if rankings_entry:

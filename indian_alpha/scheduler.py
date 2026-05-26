@@ -1,6 +1,6 @@
 import os
 import asyncio
-from datetime import datetime, time, date
+from datetime import datetime, time, date, timedelta
 import pytz
 from loguru import logger
 from typing import Dict, Any, List
@@ -96,3 +96,68 @@ class IndianMarketScheduler:
             return "post_market"
         else:
             return "standby"
+
+    def get_next_trigger_time(self) -> datetime:
+        """
+        Calculates the absolute datetime of the very next execution tick.
+        During active trading day (09:00 - 15:30 IST): ticks every 30 mins (09:00, 09:30, ..., 15:00) and a final one at 15:25.
+        Post-market: runs once at 15:35.
+        Weekend/Standby: runs once daily at 09:00 AM.
+        """
+        now = self.get_current_ist_time()
+        
+        # Helper to construct a datetime on a given date
+        def at_time(d, h: int, m: int) -> datetime:
+            return self.tz.localize(datetime.combine(d, time(h, m, 0)))
+
+        weekday = now.strftime("%A")
+        
+        # 1. If it's Saturday
+        if weekday == "Saturday":
+            target = at_time(now.date(), 9, 0)
+            if now >= target:
+                target = at_time(now.date() + timedelta(days=1), 9, 0)
+            return target
+            
+        # 2. If it's Sunday
+        if weekday == "Sunday":
+            target = at_time(now.date(), 9, 0)
+            if now >= target:
+                target = at_time(now.date() + timedelta(days=1), 9, 0)
+            return target
+
+        # 3. It is a weekday (Mon-Fri)
+        if not self.is_trading_day(now):
+            target = at_time(now.date(), 9, 0)
+            if now >= target:
+                target = at_time(now.date() + timedelta(days=1), 9, 0)
+            return target
+
+        # Today is a trading day!
+        # Define milestones
+        market_open = at_time(now.date(), 9, 0)
+        market_close_scan = at_time(now.date(), 15, 25)
+        post_market_time = at_time(now.date(), 15, 35)
+        
+        if now < market_open:
+            return market_open
+            
+        if market_open <= now < market_close_scan:
+            current_minute = now.minute
+            if current_minute < 30:
+                next_tick = at_time(now.date(), now.hour, 30)
+            else:
+                next_hour = now.hour + 1
+                if next_hour >= 24:
+                    next_tick = at_time(now.date() + timedelta(days=1), 0, 0)
+                else:
+                    next_tick = at_time(now.date(), next_hour, 0)
+            
+            if next_tick >= market_close_scan:
+                return market_close_scan
+            return next_tick
+            
+        if market_close_scan <= now < post_market_time:
+            return post_market_time
+            
+        return at_time(now.date() + timedelta(days=1), 9, 0)

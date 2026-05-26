@@ -16,6 +16,7 @@ HYPOTHESES_FILE = os.path.join(BASE_STATE_DIR, "hypotheses.jsonl")
 STRATEGY_FILE = os.path.join(BASE_STATE_DIR, "strategy.yaml")
 GOALS_FILE = os.path.join(BASE_STATE_DIR, "goal.yaml")
 REGIMES_FILE = os.path.join(BASE_STATE_DIR, "market_regimes.json")
+FUNDAMENTALS_CACHE_FILE = os.path.join(BASE_STATE_DIR, "fundamentals_cache.json")
 SNAPSHOTS_DIR = os.path.join(BASE_STATE_DIR, "snapshots")
 SNAPSHOT_DIR = SNAPSHOTS_DIR
 HISTORY_DIR = os.path.join(BASE_STATE_DIR, "history")

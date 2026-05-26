@@ -18,6 +18,34 @@ class YahooFinanceProvider(MarketDataProvider):
         self.rate_limit_delay = rate_limit_delay
         self.max_retries = max_retries
         self._lock = asyncio.Lock()
+        
+        # Load persistent stock fundamentals cache
+        from indian_alpha.config import FUNDAMENTALS_CACHE_FILE
+        self.cache_file = FUNDAMENTALS_CACHE_FILE
+        self.fundamentals_cache = {}
+        self._load_cache()
+
+    def _load_cache(self) -> None:
+        import json
+        import os
+        if os.path.exists(self.cache_file):
+            try:
+                with open(self.cache_file, "r") as f:
+                    self.fundamentals_cache = json.load(f)
+                logger.info(f"Loaded {len(self.fundamentals_cache)} stock fundamentals from cache file: {self.cache_file}")
+            except Exception as e:
+                logger.error(f"Failed to load stock fundamentals cache: {e}")
+
+    def _save_cache(self) -> None:
+        import json
+        import os
+        try:
+            os.makedirs(os.path.dirname(self.cache_file), exist_ok=True)
+            with open(self.cache_file, "w") as f:
+                json.dump(self.fundamentals_cache, f, indent=2)
+            logger.debug(f"Saved stock fundamentals cache to {self.cache_file}")
+        except Exception as e:
+            logger.error(f"Failed to save stock fundamentals cache: {e}")
 
     def _sanitize_symbol(self, symbol: str) -> str:
         """Ensure symbol has correct Yahoo suffix (.NS or .BO)"""
@@ -145,8 +173,13 @@ class YahooFinanceProvider(MarketDataProvider):
             }
 
     async def fetch_fundamentals(self, symbol: str) -> Dict[str, Any]:
-        """Fetch standard stock fundamentals"""
+        """Fetch standard stock fundamentals with persistent local caching"""
         sanitized = self._sanitize_symbol(symbol)
+        
+        # Check cache first
+        if sanitized in self.fundamentals_cache:
+            logger.info(f"Returning CACHED fundamentals for {sanitized}")
+            return self.fundamentals_cache[sanitized]
         
         def _fetch():
             ticker = yf.Ticker(sanitized)
@@ -172,8 +205,8 @@ class YahooFinanceProvider(MarketDataProvider):
                 theme = "Railway"
             elif any(kw in sanitized or kw in info.get("longName", "").upper() for kw in ["BHEL", "L&T", "ABB", "SIEMENS"]):
                 theme = "Capital Goods"
-
-            return {
+            
+            result = {
                 "symbol": sanitized,
                 "market_cap": info.get("marketCap", 0.0),
                 "pe_ratio": info.get("trailingPE", info.get("forwardPE", 0.0)),
@@ -183,6 +216,11 @@ class YahooFinanceProvider(MarketDataProvider):
                 "long_name": info.get("longName", sanitized),
                 "debt_to_equity": info.get("debtToEquity", 0.0)
             }
+            
+            # Cache the result persistently
+            self.fundamentals_cache[sanitized] = result
+            self._save_cache()
+            return result
         except Exception as e:
             logger.warning(f"Error fetching fundamentals for {sanitized}: {e}. Using defaults.")
             return {
