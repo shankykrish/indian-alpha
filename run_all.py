@@ -33,7 +33,36 @@ def initialize_volume_state():
             else:
                 logger.error(f"Default config source file not found at {source_path}!")
         else:
-            logger.info(f"Config file {filename} already exists at {target_path}")
+            # Check version upgrade to support seamless cloud upgrades on persistent volumes
+            if filename == "strategy.yaml" and os.path.exists(source_path):
+                try:
+                    import yaml
+                    with open(source_path, "r") as sf:
+                        src_data = yaml.safe_load(sf)
+                    with open(target_path, "r") as tf:
+                        tgt_data = yaml.safe_load(tf)
+                    
+                    src_ver = int(src_data.get("version", "0"))
+                    tgt_ver = int(tgt_data.get("version", "0"))
+                    
+                    if src_ver > tgt_ver:
+                        # Archive current target file
+                        history_dir = os.path.join(state_dir, "history")
+                        os.makedirs(history_dir, exist_ok=True)
+                        backup_name = f"strategy_v{tgt_data.get('version', '01')}.yaml"
+                        backup_path = os.path.join(history_dir, backup_name)
+                        shutil.copy(target_path, backup_path)
+                        
+                        # Copy new version
+                        shutil.copy(source_path, target_path)
+                        logger.info(f"Upgraded {filename} from v{tgt_ver:02d} to v{src_ver:02d} (Archived previous config to {backup_name})")
+                    else:
+                        logger.info(f"Config file {filename} already exists at {target_path} (Version v{tgt_ver:02d} is up to date)")
+                except Exception as ve:
+                    logger.error(f"Error checking version upgrade for {filename}: {ve}")
+                    logger.info(f"Config file {filename} already exists at {target_path}")
+            else:
+                logger.info(f"Config file {filename} already exists at {target_path}")
 
 def main():
     logger.info("Starting Indian-Alpha Orchestrator...")
