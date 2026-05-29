@@ -41,12 +41,21 @@ st.markdown("""
         box-shadow: 0 4px 20px rgba(0,0,0,0.2);
     }
     
-    div[data-testid="metric-container"] label {
-        color: #a0a0b0 !important;
+    /* Universal Bulletproof Metric Label Styling */
+    [data-testid="stMetricLabel"],
+    [data-testid="stMetricLabel"] *,
+    div[data-testid="metric-container"] label,
+    div[data-testid="metric-container"] label * {
+        color: #a0a0c0 !important;
         font-weight: 600 !important;
+        font-size: 0.85rem !important;
     }
     
-    div[data-testid="metric-container"] div[data-testid="stMetricValue"] {
+    /* Universal Bulletproof Metric Value Styling (Bright Crisp White) */
+    [data-testid="stMetricValue"],
+    [data-testid="stMetricValue"] *,
+    div[data-testid="metric-container"] div[data-testid="stMetricValue"],
+    div[data-testid="metric-container"] div[data-testid="stMetricValue"] * {
         color: #ffffff !important;
         font-weight: 800 !important;
     }

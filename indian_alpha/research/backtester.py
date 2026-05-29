@@ -207,8 +207,10 @@ class HistoricalBacktestEngine:
         trades_ledger = []
         equity_curve = []
         
-        # Intersect dates across all active universe data
+        start_dt = pd.to_datetime(self.start_date)
+        end_dt = pd.to_datetime(self.end_date)
         all_dates = nifty_df.index.sort_values()
+        all_dates = all_dates[(all_dates >= start_dt) & (all_dates <= end_dt)]
         
         # dynamic parameters
         max_positions = int(risk.get("max_positions", 12))
