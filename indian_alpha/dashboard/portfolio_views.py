@@ -53,8 +53,8 @@ def render_portfolio_panel(portfolio_data: Dict[str, Any]):
             if entry_price is None:
                 entry_price = 0.0
             current_price = pos.get("current_price")
-            if current_price is None:
-                current_price = 0.0
+            if current_price is None or current_price == 0.0:
+                current_price = entry_price
             qty = pos.get("quantity")
             if qty is None:
                 qty = 0
@@ -62,11 +62,11 @@ def render_portfolio_panel(portfolio_data: Dict[str, Any]):
             mtm_value = qty * current_price
             
             pnl = pos.get("unrealized_pnl")
-            if pnl is None:
-                pnl = 0.0
+            if pnl is None or pnl == 0.0:
+                pnl = (current_price - entry_price) * qty
             pnl_pct = pos.get("unrealized_pnl_pct")
-            if pnl_pct is None:
-                pnl_pct = 0.0
+            if pnl_pct is None or pnl_pct == 0.0:
+                pnl_pct = (((current_price - entry_price) / entry_price) * 100.0) if entry_price > 0.0 else 0.0
             
             rows.append({
                 "Ticker Symbol": symbol,

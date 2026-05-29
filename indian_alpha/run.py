@@ -156,7 +156,16 @@ class IndianAlphaWorker:
             
             # Mark price updates for mark-to-market valuations
             if symbol in self.portfolio.positions:
-                current_price = float(df["close"].iloc[-1]) if not df.empty else self.portfolio.positions[symbol]["entry_price"]
+                current_price = None
+                if not df.empty and df["close"].iloc[-1] is not None:
+                    import math
+                    val = float(df["close"].iloc[-1])
+                    if not math.isnan(val):
+                        current_price = val
+                
+                if current_price is None:
+                    current_price = self.portfolio.positions[symbol].get("current_price") or self.portfolio.positions[symbol]["entry_price"]
+                    
                 self.portfolio.update_holding_price(symbol, current_price)
             
             # Evaluate signals

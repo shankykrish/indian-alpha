@@ -108,7 +108,12 @@ class IndianEquitiesPortfolio:
 
     def update_holding_price(self, symbol: str, current_price: float) -> None:
         """Updates the mark-to-market price of a holding."""
+        import math
         if symbol in self.positions:
+            if current_price is None or (isinstance(current_price, float) and math.isnan(current_price)) or current_price == 0.0:
+                logger.warning(f"Invalid mark price update received for {symbol}: {current_price}. Preserving current state.")
+                return
+                
             self.positions[symbol]["current_price"] = current_price
             # Calculate current unrealized P&L
             qty = self.positions[symbol]["quantity"]
