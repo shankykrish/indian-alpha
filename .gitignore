@@ -31,3 +31,5 @@ state/market_regimes.json
 state/rankings.json
 state/trades.jsonl
 state/hypotheses.jsonl
+state/backtest_results.json
+state/backtest_universe_cache.pkl
