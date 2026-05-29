@@ -128,7 +128,25 @@ class IndianAlphaWorker:
         logger.info("Running ACTIVE MARKET workload...")
         global_metrics.record_scan()
         
-        # 1. Recalculate rankings
+        # 1. Update real-time mark-to-market prices for all open positions in the portfolio
+        if self.portfolio.positions:
+            logger.info(f"Updating real-time prices for {len(self.portfolio.positions)} active holdings...")
+            tasks = []
+            symbols = list(self.portfolio.positions.keys())
+            for symbol in symbols:
+                tasks.append(self.provider.fetch_quote(symbol))
+            quotes = await asyncio.gather(*tasks, return_exceptions=True)
+            for i, quote in enumerate(quotes):
+                symbol = symbols[i]
+                if isinstance(quote, Exception):
+                    logger.error(f"Failed to fetch real-time quote for {symbol}: {quote}")
+                    continue
+                price = quote.get("price")
+                if price:
+                    self.portfolio.update_holding_price(symbol, price)
+                    logger.info(f"Updated real-time mark price for {symbol}: ₹{price:,.2f}")
+        
+        # 2. Recalculate rankings
         rankings_data = await self.ranker.compute_rankings(self.universe)
         rankings_list = rankings_data.get("rankings", [])
         rankings_by_symbol = {r["symbol"]: r for r in rankings_list}

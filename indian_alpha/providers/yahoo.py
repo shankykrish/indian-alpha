@@ -95,6 +95,10 @@ class YahooFinanceProvider(MarketDataProvider):
             df.columns = [c.lower() for c in df.columns]
             df = df.rename(columns={"volume": "volume"})
             
+            # Drop any NaN close prices to prevent NaN propagation
+            if "close" in df.columns:
+                df = df.dropna(subset=["close"])
+            
             # Since yfinance does not supply delivery data, we simulate it realistically.
             # Momentum/institutional flow days have higher delivery.
             # We generate a mean-reverting delivery percentage between 35% and 65%.
@@ -123,8 +127,8 @@ class YahooFinanceProvider(MarketDataProvider):
         
         def _fetch():
             ticker = yf.Ticker(sanitized)
-            # Fetch fast_info or basic history to extract current quote
-            history = ticker.history(period="1d")
+            # Use period="5d" to ensure we find a valid Close price even on weekends/holidays
+            history = ticker.history(period="5d")
             info = ticker.fast_info
             return history, info
             
@@ -133,12 +137,17 @@ class YahooFinanceProvider(MarketDataProvider):
             if history.empty:
                 raise ValueError("Empty history")
                 
-            current_price = history["Close"].iloc[-1]
-            open_val = history["Open"].iloc[-1]
-            high_val = history["High"].iloc[-1]
-            low_val = history["Low"].iloc[-1]
-            close_val = history["Close"].iloc[-1]
-            vol_val = int(history["Volume"].iloc[-1])
+            # Drop any NaN rows to find the latest valid price
+            valid_history = history.dropna(subset=["Close"])
+            if valid_history.empty:
+                raise ValueError("No valid Close price found in history")
+                
+            current_price = valid_history["Close"].iloc[-1]
+            open_val = valid_history["Open"].iloc[-1]
+            high_val = valid_history["High"].iloc[-1]
+            low_val = valid_history["Low"].iloc[-1]
+            close_val = valid_history["Close"].iloc[-1]
+            vol_val = int(valid_history["Volume"].iloc[-1]) if "Volume" in valid_history.columns else 0
             
             pct_change = 0.0
             if len(history) > 1:
