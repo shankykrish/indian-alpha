@@ -28,6 +28,11 @@ class IndianEquitiesRankingEngine:
         if not symbols:
             symbols = MIDCAP_100 + SMALLCAP_100
             
+        # Load active strategy to get dynamic breakout period
+        from indian_alpha.storage.strategy_store import load_strategy
+        strat_cfg = load_strategy()
+        breakout_period = int(strat_cfg.get("entry", {}).get("breakout_period", 55))
+            
         logger.info(f"Starting Dynamic Multi-Cap Screener for {len(symbols)} candidates...")
         now = datetime.now()
         start_date = (now - timedelta(days=150)).strftime("%Y-%m-%d")
@@ -98,8 +103,8 @@ class IndianEquitiesRankingEngine:
                     mom_persistence = 0.0
                     
                 # breakout distance
-                high_20d = high.rolling(20).max().iloc[-1] if len(high) >= 20 else high.iloc[-1]
-                breakout_dist = ((high_20d - close.iloc[-1]) / high_20d) * 100.0
+                high_nd = high.rolling(breakout_period).max().iloc[-1] if len(high) >= breakout_period else high.iloc[-1]
+                breakout_dist = ((high_nd - close.iloc[-1]) / high_nd) * 100.0
                 breakout_score = max(0.0, 100.0 - breakout_dist * 10.0)
                 
                 # Trend consistency
@@ -213,8 +218,8 @@ class IndianEquitiesRankingEngine:
                 delivery_expansion = (recent_del / historical_del) if historical_del > 0 else 1.0
                 
                 # --- FACTOR 5: Breakout Quality (10%) ---
-                high_20d = df["high"].rolling(20).max().iloc[-1]
-                breakout_dist = ((high_20d - close.iloc[-1]) / high_20d) * 100.0
+                high_nd = df["high"].rolling(breakout_period).max().iloc[-1] if len(df) >= breakout_period else df["high"].max()
+                breakout_dist = ((high_nd - close.iloc[-1]) / high_nd) * 100.0
                 breakout_score = max(0.0, 100.0 - breakout_dist * 10.0)
                 
                 # --- FACTOR 6: Trend Consistency (10%) ---
