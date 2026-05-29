@@ -12,16 +12,22 @@ def render_trade_journal_panel(trades: List[Dict[str, Any]]):
         
     # 1. Closed Performance Stats
     closed_trades = [t for t in trades if t.get("action") == "SELL"]
-    open_trades_count = len([t for t in trades if t.get("action") == "BUY"]) - len(closed_trades)
+    
+    # Calculate payoff ratio (Average Win / Average Loss)
+    wins = [t.get("pnl", 0.0) for t in closed_trades if t.get("pnl", 0.0) > 0]
+    losses = [abs(t.get("pnl", 0.0)) for t in closed_trades if t.get("pnl", 0.0) < 0]
+    avg_win = sum(wins) / len(wins) if wins else 0.0
+    avg_loss = sum(losses) / len(losses) if losses else 0.0
+    payoff_ratio = (avg_win / avg_loss) if avg_loss > 0 else 0.0
     
     col1, col2, col3, col4 = st.columns(4)
     with col1:
         st.metric("Total Executed Logs", f"{len(trades)} Trades")
     with col2:
-        st.metric("Closed Positions", f"{len(closed_trades)} Trades")
-    with col3:
-        win_rate = (len([t for t in closed_trades if t.get("pnl", 0.0) > 0]) / len(closed_trades) * 100.0) if closed_trades else 0.0
+        win_rate = (len(wins) / len(closed_trades) * 100.0) if closed_trades else 0.0
         st.metric("Closed Win Rate", f"{win_rate:.1f}%")
+    with col3:
+        st.metric("Payoff Ratio (Win:Loss)", f"{payoff_ratio:.2f} : 1" if payoff_ratio > 0 else "—")
     with col4:
         total_pnl = sum([t.get("pnl", 0.0) for t in closed_trades])
         st.metric("Total Closed P&L", "₹{:,.2f}".format(total_pnl), delta="Profitable" if total_pnl >= 0 else "Unprofitable")
