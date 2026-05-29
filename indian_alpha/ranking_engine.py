@@ -233,11 +233,9 @@ class IndianEquitiesRankingEngine:
                 avg_vol_20d = volume.iloc[-20:].mean()
                 liquidity_score = min(100.0, (avg_vol_20d / 5000000.0) * 100.0)
                 
-                # --- FACTOR 8: Sector/Theme Leadership (10%) ---
+                # --- FACTOR 8: Sector/Theme Leadership (0% - Removed for Systematic Purity) ---
                 theme = fund.get("theme", "General")
                 theme_bonus = 0.0
-                if theme in ["PSU", "Defense", "Railway", "Capital Goods"]:
-                    theme_bonus = 20.0
 
                 # Normalize and map factors to 0-100 range
                 rs_nifty_norm = min(100.0, max(0.0, (rs_vs_nifty + 20.0) * 2.0))
@@ -245,16 +243,14 @@ class IndianEquitiesRankingEngine:
                 mom_persist_norm = min(100.0, max(0.0, (mom_persistence + 1.0) * 35.0))
                 del_expansion_norm = min(100.0, max(0.0, (delivery_expansion) * 45.0))
                 
-                # Calculate composite score
+                # Calculate composite score (Aligned with 100% systematic backtest model)
                 composite_score = (
-                    rs_nifty_norm * 0.20 +
-                    rs_sector_norm * 0.15 +
-                    mom_persist_norm * 0.15 +
-                    del_expansion_norm * 0.15 +
-                    breakout_score * 0.10 +
-                    trend_score * 0.10 +
-                    liquidity_score * 0.05 +
-                    min(100.0, theme_bonus * 5.0) * 0.10
+                    rs_nifty_norm * 0.25 +       # 25% Nifty Relative Strength
+                    rs_sector_norm * 0.15 +      # 15% Sector Relative Strength
+                    mom_persist_norm * 0.15 +    # 15% Persistence Quality
+                    del_expansion_norm * 0.20 +  # 20% Delivery Volume Confirmation
+                    breakout_score * 0.15 +      # 15% Breakout proximity
+                    trend_score * 0.10           # 10% Trend structure
                 )
                 
                 composite_score = min(100.0, max(0.0, composite_score))

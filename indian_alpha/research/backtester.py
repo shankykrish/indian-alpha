@@ -243,7 +243,7 @@ class HistoricalBacktestEngine:
                     fill_price = min(stop_price, today_bar["open"])
                     
                     gross_value = qty * fill_price
-                    brokerage = gross_value * 0.001 # 0.1% execution slippage & charges
+                    brokerage = gross_value * 0.0015 # 0.15% execution slippage & charges (0.30% round-trip)
                     net_value = gross_value - brokerage
                     
                     cash += net_value
@@ -339,7 +339,7 @@ class HistoricalBacktestEngine:
                         continue
                         
                     gross_value = qty * price
-                    brokerage = gross_value * 0.001 # 0.1% friction
+                    brokerage = gross_value * 0.0015 # 0.15% friction (0.30% round-trip)
                     total_cost = gross_value + brokerage
                     
                     if cash >= total_cost:
