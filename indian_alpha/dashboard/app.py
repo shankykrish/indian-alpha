@@ -76,6 +76,7 @@ from indian_alpha.dashboard.reflection_views import render_reflection_panel
 from indian_alpha.dashboard.strategy_views import render_strategy_panel
 from indian_alpha.dashboard.health_views import render_health_panel
 from indian_alpha.dashboard.trade_views import render_trade_journal_panel
+from indian_alpha.dashboard.backtest_views import render_backtest_panel
 
 # Import Core Storage Engines
 from indian_alpha.storage.trades import load_trades
@@ -96,6 +97,7 @@ def main():
         [
             "💼 Portfolio & Performance",
             "🎯 Live Rankings",
+            "🔬 Quant Research Backtests",
             "🌐 Market Regimes",
             "🧠 Cognitive Reflection",
             "⚙️ Active Strategy Settings",
@@ -162,6 +164,9 @@ def main():
                 
     elif nav == "🎯 Live Rankings":
         render_rankings_panel(rankings)
+        
+    elif nav == "🔬 Quant Research Backtests":
+        render_backtest_panel()
         
     elif nav == "🌐 Market Regimes":
         render_regime_panel(regimes)
