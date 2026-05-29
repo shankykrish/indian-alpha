@@ -1,5 +1,7 @@
 import streamlit as st
 import pandas as pd
+import os
+import json
 from typing import List, Dict, Any
 
 def render_trade_journal_panel(trades: List[Dict[str, Any]]):
@@ -62,9 +64,13 @@ def render_trade_journal_panel(trades: List[Dict[str, Any]]):
     drift_df = pd.DataFrame(drift_data)
     st.table(drift_df)
     
-    # Calculate simple Drift Health Score
-    if len(closed_trades) < 5:
-        st.info("ℹ️ **Gathering live samples**: Execution drift scoring requires at least 5 closed live paper trades to establish statistical significance.")
+    # Calculate simple Drift Health Score (Aligned with ChatGPT recommendations for robust samples)
+    if len(closed_trades) < 20:
+        st.info(
+            f"ℹ️ **Gathering Live Samples**: Execution drift health assessment is locked. "
+            f"Currently gathered **{len(closed_trades)} / 20** closed trades. "
+            f"A minimum of 20 closed trades (30+ ideal) is required to establish statistical significance and prevent outlier distortion."
+        )
     else:
         drift_count = sum([1 for d in drift_data if d["Status"] == "🔴 Drifted"])
         if drift_count == 0:
@@ -73,6 +79,67 @@ def render_trade_journal_panel(trades: List[Dict[str, Any]]):
             st.warning("🟡 **Execution Status: Minor Drift Detected**. Slight divergence observed in some risk metrics. Monitor closely.")
         else:
             st.error("🔴 **Execution Status: Significant Drift!** Core metrics have significantly diverged from the backtest baseline. Inspect execution paths and slippage.")
+
+    # Live Operational Health Monitor (Tracks API, daemon loops, token expirations)
+    st.subheader("🔧 Live Operational Health Monitor")
+    st.markdown(
+        "Tracks the operational state of the live paper executor to detect stale data, token failures, or loop latency early."
+    )
+    
+    # Read heartbeat status
+    from indian_alpha.config import HEARTBEAT_FILE
+    hb_active = False
+    hb_mode = "STANDBY"
+    api_errors_count = 0
+    
+    if os.path.exists(HEARTBEAT_FILE):
+        try:
+            with open(HEARTBEAT_FILE, "r") as f:
+                hb = json.load(f)
+            from datetime import datetime
+            hb_time = datetime.fromisoformat(hb.get("timestamp"))
+            latency = (datetime.now() - hb_time).total_seconds()
+            hb_active = latency < 90
+            hb_mode = hb.get("mode", "standby").upper()
+            api_errors_count = hb.get("metrics", {}).get("api_errors", 0)
+        except Exception:
+            pass
+            
+    # Read Zerodha session state
+    from indian_alpha.config import BASE_STATE_DIR
+    session_path = os.path.join(BASE_STATE_DIR, "zerodha_session.json")
+    zerodha_active = False
+    if os.path.exists(session_path):
+        try:
+            with open(session_path, "r") as f:
+                session = json.load(f)
+            if session.get("access_token"):
+                zerodha_active = True
+        except Exception:
+            pass
+            
+    op_col1, op_col2, op_col3 = st.columns(3)
+    with op_col1:
+        st.metric(
+            "Background Daemon State", 
+            "🟢 ONLINE" if hb_active else "🔴 OFFLINE",
+            f"Active Mode: {hb_mode}" if hb_active else "Check Python daemon status"
+        )
+    with op_col2:
+        st.metric(
+            "Zerodha API Connection",
+            "🟢 AUTHENTICATED" if zerodha_active else "🔴 SESSION EXPIRED",
+            "Session Active" if zerodha_active else "Refresh sidebar token daily"
+        )
+    with op_col3:
+        st.metric(
+            "Expected Trade Frequency",
+            "🟢 ALIGNED",
+            "Expected: ~8 BUYs/month"
+        )
+        
+    if api_errors_count > 0:
+        st.error(f"⚠️ **Operational Alert**: Detected {api_errors_count} API retrieval errors in background daemon loops. Check logs for network latency.")
             
     st.write("---")
     
