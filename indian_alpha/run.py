@@ -192,6 +192,13 @@ class IndianAlphaWorker:
             price = signal_res.get("price", 0.0)
             reason = signal_res.get("reason", "")
             
+            # Check market regime filter
+            block_bear_panic = strat_cfg.get("market_filter", {}).get("block_bear_and_panic", True)
+            if block_bear_panic and active_regime in ["bear", "panic"]:
+                if symbol not in self.portfolio.positions:
+                    logger.info(f"BUY order for {symbol} blocked due to restrictive market regime: {active_regime}")
+                    continue
+            
             # 3. Simulate entries
             if action == "BUY" and symbol not in self.portfolio.positions:
                 # Check circuit breaker
@@ -223,8 +230,30 @@ class IndianAlphaWorker:
                     max_pos
                 )
                 
+                # Calculate stop price based on mode
+                stop_loss_mode = strat_cfg.get("risk", {}).get("stop_loss_mode", "fixed")
+                atr_val = signal_res.get("atr_value", price * 0.03)
+                
+                if stop_loss_mode == "atr":
+                    multiplier = float(strat_cfg.get("risk", {}).get("atr_stop_multiplier", 2.5))
+                    stop_loss_price = fill_price - (multiplier * atr_val)
+                else:
+                    fixed_pct = float(strat_cfg.get("risk", {}).get("stop_loss_pct", 7.0))
+                    stop_loss_price = fill_price * (1 - fixed_pct / 100.0)
+                
                 if ok:
-                    self.portfolio.enter_position(symbol, qty, fill_price, rank_entry["sector"], rank_entry["theme"], brokerage_cost)
+                    trailing_pct_val = float(strat_cfg.get("risk", {}).get("trailing_stop_pct", 15.0)) if strat_cfg.get("risk", {}).get("trailing_stop_mode", "atr") == "fixed" else 0.0
+                    self.portfolio.enter_position(
+                        symbol, 
+                        qty, 
+                        fill_price, 
+                        rank_entry["sector"], 
+                        rank_entry["theme"], 
+                        brokerage_cost,
+                        stop_loss_price=stop_loss_price,
+                        trailing_stop_pct=trailing_pct_val,
+                        atr_value=atr_val
+                    )
                     # Log paper trade record
                     trade_record = {
                         "timestamp": datetime.now().isoformat(),
@@ -249,19 +278,40 @@ class IndianAlphaWorker:
             entry_price = pos["entry_price"]
             unrealized_pnl_pct = pos["unrealized_pnl_pct"]
             
-            stop_loss = -float(strat_cfg.get("risk", {}).get("stop_loss_pct", 7.0))
-            trailing_stop = float(strat_cfg.get("risk", {}).get("trailing_stop_pct", 12.0))
+            # Fetch exit strategy modes
+            trailing_stop_mode = strat_cfg.get("risk", {}).get("trailing_stop_mode", "atr")
             
-            # Exit check
+            # Retrieve parameters stored in position
+            saved_stop_loss_price = pos.get("stop_loss_price", 0.0)
+            max_price = pos.get("max_price", entry_price)
+            entry_atr = pos.get("entry_atr", entry_price * 0.03)
+            
+            # Fallbacks if properties are not initialized in saved state
+            if saved_stop_loss_price == 0.0:
+                fixed_pct = float(strat_cfg.get("risk", {}).get("stop_loss_pct", 7.0))
+                saved_stop_loss_price = entry_price * (1 - fixed_pct / 100.0)
+            
             triggered_exit = False
             exit_reason = ""
             
-            if unrealized_pnl_pct <= stop_loss:
+            # --- Initial Stop Loss check ---
+            if current_price <= saved_stop_loss_price:
                 triggered_exit = True
-                exit_reason = f"Stop Loss hit at {unrealized_pnl_pct:.2f}% (Limit: {stop_loss}%)"
-            elif unrealized_pnl_pct >= trailing_stop:
-                triggered_exit = True
-                exit_reason = f"Trailing Profit Target hit at {unrealized_pnl_pct:.2f}% (Limit: {trailing_stop}%)"
+                exit_reason = f"Stop Loss hit at Rs. {current_price:.2f} (Limit Price: Rs. {saved_stop_loss_price:.2f})"
+                
+            # --- Trailing Stop check ---
+            elif trailing_stop_mode == "atr":
+                multiplier = float(strat_cfg.get("risk", {}).get("atr_trailing_multiplier", 3.0))
+                trailing_stop_price = max_price - (multiplier * entry_atr)
+                if current_price <= trailing_stop_price:
+                    triggered_exit = True
+                    exit_reason = f"ATR Trailing Stop hit at Rs. {current_price:.2f} (Trailing Stop Price: Rs. {trailing_stop_price:.2f}, Max Peak: Rs. {max_price:.2f})"
+            elif trailing_stop_mode == "fixed":
+                fixed_trail_pct = float(strat_cfg.get("risk", {}).get("trailing_stop_pct", 15.0))
+                trailing_stop_price = max_price * (1 - fixed_trail_pct / 100.0)
+                if current_price <= trailing_stop_price:
+                    triggered_exit = True
+                    exit_reason = f"Fixed Trailing Stop ({fixed_trail_pct}%) hit at Rs. {current_price:.2f} (Trailing Stop Price: Rs. {trailing_stop_price:.2f}, Max Peak: Rs. {max_price:.2f})"
                 
             if triggered_exit:
                 # Calculate charges

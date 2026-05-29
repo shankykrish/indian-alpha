@@ -1,4 +1,4 @@
-version: "01"
+version: "02"
 
 strategy_type: momentum_breakout
 
@@ -6,23 +6,42 @@ market_data:
   provider: yahoo
 
 entry:
+  # Momentum Breakout Configs
+  breakout_period: 55                      # Use a longer lookback to avoid noise
+  rsi_min: 60
+  momentum_quality_min: 75
   relative_strength_vs_nifty_min: 70
   relative_strength_vs_sector_min: 65
-  breakout_20d: true
+  
+  # Volume & Delivery Confirmation
   volume_expansion_ratio: 1.8
   delivery_volume_ratio: 1.5
   above_50dma: true
   above_200dma: true
-  rsi_min: 60
-  momentum_quality_min: 75
+  
+  # Fundamental & Liquidity Safety Screeners
+  min_market_cap_cr: 1000.0                # 1,000 Crore INR floor
+  min_daily_turnover_cr: 5.0               # 5 Crore INR floor (average volume * close)
+
+market_filter:
+  block_bear_and_panic: true               # Stop entering new trades during Bear/Panic regimes
+  nifty_above_200dma: true                 # Optional strict trend filter
 
 risk:
-  stop_loss_pct: 7
-  trailing_stop_pct: 12
-  max_positions: 10
-  position_size_pct: 10
-
+  max_positions: 12                        # Reduced single stock concentration
+  position_size_pct: 8                     # Reduced from 10% to 8% (8% * 12 = 96% exposure)
+  
+  # Initial Stop Loss Configuration
+  stop_loss_mode: atr                      # 'fixed' or 'atr'
+  stop_loss_pct: 7.0                       # For fixed mode
+  atr_stop_multiplier: 2.5                 # For ATR mode: 2.5 * ATR(14)
+  
+  # Trailing Stop Configuration
+  trailing_stop_mode: atr                  # 'fixed', 'atr', or 'none'
+  trailing_stop_pct: 15.0                  # For fixed trailing mode
+  atr_trailing_multiplier: 3.0             # For ATR trailing mode: 3.0 * ATR(14)
+  
 reflection:
-  cadence_trades: 10
   one_variable_only: true
   regime_aware: true
+  cadence_trades: 10

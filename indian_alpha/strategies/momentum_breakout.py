@@ -32,6 +32,7 @@ class MomentumBreakoutStrategy:
             close = df["close"]
             volume = df["volume"]
             high = df["high"]
+            low = df["low"]
             
             last_close = close.iloc[-1]
             prev_close = close.iloc[-2]
@@ -39,6 +40,20 @@ class MomentumBreakoutStrategy:
             # Load parameters from strategy.yaml config
             entry_config = self.config.get("entry", {})
             
+            # --- PRE-FILTER: Market Cap Screener ---
+            market_cap_cr = float(fundamentals.get("market_cap", 0.0) / 10000000.0)
+            min_market_cap_cr = entry_config.get("min_market_cap_cr", 0.0)
+            if min_market_cap_cr > 0.0 and market_cap_cr < min_market_cap_cr:
+                return {"action": "HOLD", "price": 0.0, "reason": f"Market cap (Rs. {market_cap_cr:.2f} Cr) below minimum threshold (Rs. {min_market_cap_cr:.2f} Cr)"}
+
+            # --- PRE-FILTER: Average Daily Turnover Screener ---
+            avg_vol_20d = volume.iloc[-20:].mean()
+            avg_close_20d = close.iloc[-20:].mean()
+            avg_turnover_cr = (avg_vol_20d * avg_close_20d) / 10000000.0
+            min_turnover_cr = entry_config.get("min_daily_turnover_cr", 0.0)
+            if min_turnover_cr > 0.0 and avg_turnover_cr < min_turnover_cr:
+                return {"action": "HOLD", "price": 0.0, "reason": f"Average daily turnover (Rs. {avg_turnover_cr:.2f} Cr) below threshold (Rs. {min_turnover_cr:.2f} Cr)"}
+
             # --- RULE 1: Above Moving Averages ---
             ma_50 = close.rolling(50).mean().iloc[-1] if len(close) >= 50 else last_close
             ma_200 = close.rolling(200).mean().iloc[-1] if len(close) >= 200 else last_close
@@ -48,11 +63,12 @@ class MomentumBreakoutStrategy:
             if entry_config.get("above_200dma", True) and last_close < ma_200:
                 return {"action": "HOLD", "price": 0.0, "reason": f"Close ({last_close:.2f}) below 200 DMA ({ma_200:.2f})"}
                 
-            # --- RULE 2: Breakout 20-day high ---
-            if entry_config.get("breakout_20d", True):
-                high_20d = high.iloc[-21:-1].max() # Exclude current bar to detect crossing
-                if last_close <= high_20d:
-                    return {"action": "HOLD", "price": 0.0, "reason": f"Price ({last_close:.2f}) did not break 20-day high ({high_20d:.2f})"}
+            # --- RULE 2: High Breakout ---
+            breakout_period = entry_config.get("breakout_period", 20)
+            if breakout_period > 0:
+                high_n = high.iloc[-(breakout_period + 1):-1].max() # Exclude current bar to detect crossing
+                if last_close <= high_n:
+                    return {"action": "HOLD", "price": 0.0, "reason": f"Price ({last_close:.2f}) did not break {breakout_period}-day high ({high_n:.2f})"}
 
             # Calculate dynamic volume scale factor based on elapsed time of the trading day
             # Market is active from 09:15 to 15:30 IST (375 minutes)
@@ -70,7 +86,6 @@ class MomentumBreakoutStrategy:
                 fraction = min(1.0, max(0.05, elapsed_minutes / 375.0))
 
             # --- RULE 3: Volume Expansion Ratio ---
-            avg_vol_20d = volume.iloc[-20:].mean()
             vol_expansion = volume.iloc[-1] / avg_vol_20d if avg_vol_20d > 0 else 1.0
             raw_min_vol_exp = entry_config.get("volume_expansion_ratio", 1.8)
             min_vol_exp = raw_min_vol_exp * fraction
@@ -93,8 +108,6 @@ class MomentumBreakoutStrategy:
                 comp_score = rankings_entry.get("composite_score", 0.0)
                 
                 min_rs_nifty = entry_config.get("relative_strength_vs_nifty_min", 70)
-                # Map raw relative strength return difference to an index range or compare directly
-                # If the composite ranking score represents momentum quality:
                 min_quality = entry_config.get("momentum_quality_min", 75)
                 
                 if comp_score < min_quality:
@@ -114,9 +127,25 @@ class MomentumBreakoutStrategy:
             if rsi < min_rsi:
                 return {"action": "HOLD", "price": 0.0, "reason": f"RSI-14 ({rsi:.2f}) below minimum momentum RSI ({min_rsi})"}
 
+            # Calculate ATR for stop losses
+            try:
+                high_low = high - low
+                high_close = (high - close.shift()).abs()
+                low_close = (low - close.shift()).abs()
+                ranges = pd.concat([high_low, high_close, low_close], axis=1)
+                true_range = ranges.max(axis=1)
+                atr_series = true_range.rolling(14).mean()
+                atr_value = float(atr_series.iloc[-1])
+                if pd.isna(atr_value) or atr_value <= 0.0:
+                    atr_value = float(last_close * 0.03)
+            except Exception as e:
+                logger.warning(f"Error calculating ATR for {symbol}: {e}")
+                atr_value = float(last_close * 0.03)
+
             return {
                 "action": "BUY",
                 "price": float(last_close),
+                "atr_value": atr_value,
                 "reason": f"Valid momentum breakout! RSI: {rsi:.1f}, Vol Exp: {vol_expansion:.1f}x, Theme: {fundamentals.get('theme')}"
             }
             

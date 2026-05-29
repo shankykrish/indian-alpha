@@ -115,6 +115,12 @@ class IndianEquitiesPortfolio:
                 return
                 
             self.positions[symbol]["current_price"] = current_price
+            
+            # Update maximum price achieved since entry for trailing stop calculations
+            if "max_price" not in self.positions[symbol] or self.positions[symbol]["max_price"] is None:
+                self.positions[symbol]["max_price"] = self.positions[symbol]["entry_price"]
+            self.positions[symbol]["max_price"] = max(self.positions[symbol]["max_price"], current_price)
+            
             # Calculate current unrealized P&L
             qty = self.positions[symbol]["quantity"]
             entry_price = self.positions[symbol]["entry_price"]
@@ -128,7 +134,10 @@ class IndianEquitiesPortfolio:
         price: float, 
         sector: str, 
         theme: str,
-        execution_cost: float
+        execution_cost: float,
+        stop_loss_price: float = 0.0,
+        trailing_stop_pct: float = 0.0,
+        atr_value: float = 0.0
     ) -> None:
         """Records entry of a paper trade position."""
         cost = quantity * price
@@ -141,13 +150,17 @@ class IndianEquitiesPortfolio:
             "quantity": quantity,
             "entry_price": price,
             "current_price": price,
+            "max_price": price,
+            "stop_loss_price": stop_loss_price,
+            "trailing_stop_pct": trailing_stop_pct,
+            "entry_atr": atr_value,
             "entry_time": datetime.now().isoformat(),
             "sector": sector,
             "theme": theme,
             "unrealized_pnl": 0.0,
             "unrealized_pnl_pct": 0.0
         }
-        logger.info(f"Entered position {symbol}: {quantity} shares @ Rs. {price:.2f}. Total cost including brokerage: Rs. {total_cost:,.2f}")
+        logger.info(f"Entered position {symbol}: {quantity} shares @ Rs. {price:.2f}. Total cost including brokerage: Rs. {total_cost:,.2f}. Stop Price: Rs. {stop_loss_price:.2f}")
 
     def exit_position(
         self, 
