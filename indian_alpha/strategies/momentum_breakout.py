@@ -108,10 +108,15 @@ class MomentumBreakoutStrategy:
                 comp_score = rankings_entry.get("composite_score", 0.0)
                 
                 min_rs_nifty = entry_config.get("relative_strength_vs_nifty_min", 70)
+                min_rs_sector = entry_config.get("relative_strength_vs_sector_min", 65)
                 min_quality = entry_config.get("momentum_quality_min", 75)
                 
                 if comp_score < min_quality:
                     return {"action": "HOLD", "price": 0.0, "reason": f"Composite momentum score {comp_score:.2f} below threshold {min_quality}"}
+                if rs_nifty < min_rs_nifty:
+                    return {"action": "HOLD", "price": 0.0, "reason": f"Relative strength vs Nifty ({rs_nifty:.2f}) below threshold ({min_rs_nifty})"}
+                if rs_sector < min_rs_sector:
+                    return {"action": "HOLD", "price": 0.0, "reason": f"Relative strength vs Sector ({rs_sector:.2f}) below threshold ({min_rs_sector})"}
 
             # --- RULE 6: RSI momentum check ---
             # Basic RSI-14 calculation

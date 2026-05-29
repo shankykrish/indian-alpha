@@ -3,7 +3,7 @@ version: "02"
 strategy_type: momentum_breakout
 
 market_data:
-  provider: yahoo
+  provider: zerodha
 
 entry:
   # Momentum Breakout Configs

@@ -99,6 +99,18 @@ class YahooFinanceProvider(MarketDataProvider):
             if "close" in df.columns:
                 df = df.dropna(subset=["close"])
             
+            df = await self.inject_delivery_data(df, symbol)
+            return df
+            
+        except Exception as e:
+            logger.error(f"Error fetching OHLCV for {sanitized}: {e}")
+            return pd.DataFrame()
+
+    async def inject_delivery_data(self, df: pd.DataFrame, symbol: str) -> pd.DataFrame:
+        """Injects EOD delivery statistics into an OHLCV DataFrame."""
+        if df.empty:
+            return df
+        try:
             # Since yfinance does not supply delivery data, we simulate it realistically.
             # Momentum/institutional flow days have higher delivery.
             # We generate a mean-reverting delivery percentage between 35% and 65%.
@@ -116,10 +128,9 @@ class YahooFinanceProvider(MarketDataProvider):
             df["delivery_pct"] = delivery_pct
             df["delivery_volume"] = df["volume"] * df["delivery_pct"]
             return df
-            
         except Exception as e:
-            logger.error(f"Error fetching OHLCV for {sanitized}: {e}")
-            return pd.DataFrame()
+            logger.error(f"Error injecting delivery statistics for {symbol}: {e}")
+            return df
 
     async def fetch_quote(self, symbol: str) -> Dict[str, Any]:
         """Fetch current quote for a symbol"""

@@ -10,7 +10,7 @@ from indian_alpha.observability.logging import setup_logging
 from indian_alpha.observability.heartbeat import write_heartbeat
 from indian_alpha.observability.metrics import global_metrics
 from indian_alpha.observability.alerts import send_alert
-from indian_alpha.providers.yahoo import YahooFinanceProvider
+from indian_alpha.providers.loader import get_active_provider
 from indian_alpha.regimes.classifier import MarketRegimeClassifier
 from indian_alpha.ranking_engine import IndianEquitiesRankingEngine
 from indian_alpha.portfolio import IndianEquitiesPortfolio
@@ -32,7 +32,7 @@ class IndianAlphaWorker:
     def __init__(self):
         self.running = True
         self.scheduler = IndianMarketScheduler()
-        self.provider = YahooFinanceProvider()
+        self.provider = get_active_provider()
         self.classifier = MarketRegimeClassifier(self.provider)
         self.ranker = IndianEquitiesRankingEngine(self.provider)
         self.portfolio = IndianEquitiesPortfolio()
@@ -77,16 +77,21 @@ class IndianAlphaWorker:
                 save_regime_classification(regime_data)
                 active_regime = regime_data.get("regime", "sideways")
                 
+                # Load strategy rules to get configured risk parameters
+                from indian_alpha.storage.strategy_store import load_strategy
+                strat_cfg = load_strategy()
+                risk_config = strat_cfg.get("risk", {})
+                
                 # Adjust portfolio sizing rules based on regime
                 strategy_cfg = self.portfolio.determine_regime_sizing(
                     active_regime, 
-                    {"max_positions": 10, "position_size_pct": 10.0}
+                    risk_config
                 )
                 max_pos, pos_size_pct = strategy_cfg
                 
                 # 2. Mode Action Selection
                 if mode == "active_market" or is_fast_run:
-                    await self._execute_active_trading(active_regime, max_pos, pos_size_pct)
+                    await self._execute_active_trading(regime_data, max_pos, pos_size_pct)
                     
                 if mode == "post_market" or is_fast_run:
                     await self._execute_post_market_analysis()
@@ -123,8 +128,9 @@ class IndianAlphaWorker:
         self.portfolio.save_state()
         logger.info("Worker state successfully saved to /app/state. Shutdown complete.")
 
-    async def _execute_active_trading(self, active_regime: str, max_pos: int, pos_size_pct: float):
+    async def _execute_active_trading(self, regime_data, max_pos: int, pos_size_pct: float):
         """Active Market Mode: Scans universe, computes rankings, generates signals, fills trades."""
+        active_regime = regime_data.get("regime", "sideways")
         logger.info("Running ACTIVE MARKET workload...")
         global_metrics.record_scan()
         
@@ -197,6 +203,16 @@ class IndianAlphaWorker:
             if block_bear_panic and active_regime in ["bear", "panic"]:
                 if symbol not in self.portfolio.positions:
                     logger.info(f"BUY order for {symbol} blocked due to restrictive market regime: {active_regime}")
+                    continue
+            
+            # Enforce Nifty above 200 DMA filter
+            nifty_above_200dma_filter = strat_cfg.get("market_filter", {}).get("nifty_above_200dma", True)
+            if nifty_above_200dma_filter and symbol not in self.portfolio.positions:
+                telemetry = regime_data.get("telemetry", {})
+                nifty_close = telemetry.get("nifty_close")
+                nifty_200ma = telemetry.get("nifty_200ma")
+                if nifty_close is not None and nifty_200ma is not None and nifty_close < nifty_200ma:
+                    logger.info(f"BUY order for {symbol} blocked because Nifty close ({nifty_close:.2f}) is below 200 DMA ({nifty_200ma:.2f})")
                     continue
             
             # 3. Simulate entries

@@ -1,5 +1,20 @@
 import os
 
+# Self-healing helper: Dynamically parse and load local .env variables into os.environ
+env_file = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".env"))
+if os.path.exists(env_file):
+    try:
+        with open(env_file, "r") as f:
+            for line in f:
+                line = line.strip()
+                if line and not line.startswith("#") and "=" in line:
+                    key, val = line.split("=", 1)
+                    key = key.strip()
+                    val = val.strip().strip('"').strip("'")
+                    os.environ[key] = val
+    except Exception as e:
+        pass
+
 # Dynamic path resolution to support both local development and Railway production
 if os.path.exists("/app/state") and os.name != 'nt':
     # In Docker container (Railway)

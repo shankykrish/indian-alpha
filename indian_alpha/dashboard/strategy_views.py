@@ -18,7 +18,7 @@ def render_strategy_panel(strategy_cfg: Dict[str, Any]):
         entry = strategy_cfg.get("entry", {})
         st.write(f"- Minimum Relative Strength vs Nifty: **{entry.get('relative_strength_vs_nifty_min')}%**")
         st.write(f"- Minimum Relative Strength vs Sector: **{entry.get('relative_strength_vs_sector_min')}%**")
-        st.write(f"- 20-Day High Breakout Required: **{entry.get('breakout_20d')}**")
+        st.write(f"- High Breakout Period Lookback: **{entry.get('breakout_period', 20)} Days**")
         st.write(f"- Volume Expansion Ratio Multiplier: **{entry.get('volume_expansion_ratio')}x**")
         st.write(f"- Delivery Volume Expansion Multiplier: **{entry.get('delivery_volume_ratio')}x**")
         st.write(f"- Minimum Entry RSI-14: **{entry.get('rsi_min')}**")
@@ -27,8 +27,23 @@ def render_strategy_panel(strategy_cfg: Dict[str, Any]):
     with col2:
         st.subheader("🛡️ Portfolio Risk Management Rules")
         risk = strategy_cfg.get("risk", {})
-        st.write(f"- Hard Stop Loss Percentage: **-{risk.get('stop_loss_pct')}%**")
-        st.write(f"- Trailing Profit Stop Percentage: **{risk.get('trailing_stop_pct')}%**")
+        
+        # Dynamic Initial Stop Loss display
+        sl_mode = risk.get('stop_loss_mode', 'fixed')
+        if sl_mode == 'atr':
+            st.write(f"- Initial Stop Loss: **{risk.get('atr_stop_multiplier', 2.5)}x ATR(14)** (Dynamic)")
+        else:
+            st.write(f"- Initial Stop Loss: **-{risk.get('stop_loss_pct', 7.0)}%** (Fixed)")
+            
+        # Dynamic Trailing Stop display
+        ts_mode = risk.get('trailing_stop_mode', 'atr')
+        if ts_mode == 'atr':
+            st.write(f"- Trailing Stop: **{risk.get('atr_trailing_multiplier', 3.0)}x ATR(14)** (Dynamic)")
+        elif ts_mode == 'fixed':
+            st.write(f"- Trailing Stop: **-{risk.get('trailing_stop_pct', 15.0)}%** (Fixed)")
+        else:
+            st.write("- Trailing Stop: **Disabled**")
+            
         st.write(f"- Maximum Account Positions Count: **{risk.get('max_positions')}**")
         st.write(f"- Sizing Percentage per Position: **{risk.get('position_size_pct')}%**")
         

@@ -23,8 +23,8 @@ def render_portfolio_panel(portfolio_data: Dict[str, Any]):
     if positions:
         try:
             import asyncio
-            from indian_alpha.providers.yahoo import YahooFinanceProvider
-            provider = YahooFinanceProvider()
+            from indian_alpha.providers.loader import get_active_provider
+            provider = get_active_provider()
             
             async def fetch_all_quotes():
                 tasks = [provider.fetch_quote(sym) for sym in positions.keys()]

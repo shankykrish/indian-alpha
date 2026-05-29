@@ -110,6 +110,10 @@ def main():
     if st.sidebar.button("🔄 Sync State"):
         st.rerun()
         
+    # Render Zerodha connection status & OAuth panel
+    from indian_alpha.dashboard.zerodha_views import render_zerodha_auth_sidebar
+    render_zerodha_auth_sidebar()
+        
     st.sidebar.markdown("""
     **Timezone:** `Asia/Kolkata`
     **Persistent Storage:** `/app/state`

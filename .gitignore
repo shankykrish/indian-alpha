@@ -20,3 +20,14 @@ state/snapshots/portfolio_*.json
 state/snapshots/rankings_*.json
 state/history/strategy_v*.yaml
 state/history/app.log
+        
+# Exclude local environment keys
+.env
+state/zerodha_session.json
+state/kite_tokens_cache.json
+state/fundamentals_cache.json
+state/heartbeat.json
+state/market_regimes.json
+state/rankings.json
+state/trades.jsonl
+state/hypotheses.jsonl
