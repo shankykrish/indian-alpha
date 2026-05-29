@@ -45,8 +45,20 @@ class IndianEquitiesPortfolio:
         """Returns total portfolio value (cash + sum of market values of all holdings)."""
         positions_value = 0.0
         for sym, pos in self.positions.items():
-            positions_value += pos["quantity"] * pos["current_price"]
-        return self.cash + positions_value
+            qty = pos.get("quantity")
+            if qty is None:
+                qty = 0
+            price = pos.get("current_price")
+            if price is None:
+                price = pos.get("entry_price")
+            if price is None:
+                price = 0.0
+            positions_value += qty * price
+            
+        cash = self.cash
+        if cash is None:
+            cash = 0.0
+        return cash + positions_value
 
     def can_add_position(
         self, 
@@ -73,10 +85,20 @@ class IndianEquitiesPortfolio:
 
         # 3. Check sector exposure cap
         equity = self.get_total_equity()
+        if equity <= 0.0:
+            equity = 1000000.0
         sector_value = 0.0
         for sym, pos in self.positions.items():
             if pos.get("sector", "").upper() == sector.upper():
-                sector_value += pos["quantity"] * pos["current_price"]
+                qty = pos.get("quantity")
+                if qty is None:
+                    qty = 0
+                price = pos.get("current_price")
+                if price is None:
+                    price = pos.get("entry_price")
+                if price is None:
+                    price = 0.0
+                sector_value += qty * price
                 
         new_sector_exposure_pct = ((sector_value + allocated_capital) / equity) * 100.0
         if new_sector_exposure_pct > max_sector_exposure_pct:

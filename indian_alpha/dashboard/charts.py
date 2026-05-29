@@ -131,8 +131,17 @@ def draw_sector_concentration(positions: Dict[str, Dict[str, Any]]) -> go.Figure
         
     sector_values = {}
     for sym, pos in positions.items():
-        sec = pos.get("sector", "Other")
-        val = pos["quantity"] * pos["current_price"]
+        sec = pos.get("sector") or "Other"
+        qty = pos.get("quantity")
+        if qty is None:
+            qty = 0
+        current_price = pos.get("current_price")
+        if current_price is None:
+            current_price = pos.get("entry_price")
+        if current_price is None:
+            current_price = 0.0
+            
+        val = qty * current_price
         sector_values[sec] = sector_values.get(sec, 0.0) + val
         
     df = pd.DataFrame(list(sector_values.items()), columns=["Sector", "Value"])
