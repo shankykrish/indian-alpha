@@ -34,6 +34,48 @@ def render_trade_journal_panel(trades: List[Dict[str, Any]]):
         
     st.write("---")
     
+    # Live Execution Drift Monitor (ChatGPT validation requirement)
+    st.subheader("🔍 Live Execution Drift Monitor")
+    st.markdown(
+        "Compare live paper shadow metrics against frozen backtest targets (`v02` model under 0.30% round-trip costs) "
+        "to track execution drift, market regime shift, or data feed anomalies."
+    )
+    
+    # Calculate advanced live statistics
+    live_wins_pct = [t.get("pnl_pct", 0.0) for t in closed_trades if t.get("pnl_pct", 0.0) > 0]
+    live_losses_pct = [abs(t.get("pnl_pct", 0.0)) for t in closed_trades if t.get("pnl_pct", 0.0) < 0]
+    live_avg_win_pct = sum(live_wins_pct) / len(live_wins_pct) if live_wins_pct else 0.0
+    live_avg_loss_pct = sum(live_losses_pct) / len(live_losses_pct) if live_losses_pct else 0.0
+    
+    gross_wins = sum([t.get("pnl", 0.0) for t in closed_trades if t.get("pnl", 0.0) > 0])
+    gross_losses = sum([abs(t.get("pnl", 0.0)) for t in closed_trades if t.get("pnl", 0.0) < 0])
+    live_profit_factor = gross_wins / gross_losses if gross_losses > 0 else 1.0 if gross_wins > 0 else 0.0
+    
+    drift_data = [
+        {"Performance Metric": "Closed Win Rate", "Expected Backtest Target": "42.2%", "Observed Live Paper": f"{win_rate:.1f}%", "Status": "🟢 Aligned" if not closed_trades or abs(win_rate - 42.2) <= 5 else "🔴 Drifted"},
+        {"Performance Metric": "Payoff Ratio", "Expected Backtest Target": "2.22 : 1", "Observed Live Paper": f"{payoff_ratio:.2f} : 1" if closed_trades else "—", "Status": "🟢 Aligned" if not closed_trades or (payoff_ratio >= 1.9) else "🔴 Drifted" if closed_trades else "🟢 Aligned"},
+        {"Performance Metric": "Profit Factor", "Expected Backtest Target": "1.49x", "Observed Live Paper": f"{live_profit_factor:.2f}x" if closed_trades else "—", "Status": "🟢 Aligned" if not closed_trades or (live_profit_factor >= 1.35) else "🔴 Drifted" if closed_trades else "🟢 Aligned"},
+        {"Performance Metric": "Avg. Winner Return", "Expected Backtest Target": "+15.11%", "Observed Live Paper": f"+{live_avg_win_pct:.2f}%" if live_wins_pct else "—", "Status": "🟢 Aligned" if not live_wins_pct or (live_avg_win_pct >= 12.0) else "🔴 Drifted" if live_wins_pct else "🟢 Aligned"},
+        {"Performance Metric": "Avg. Loser Return", "Expected Backtest Target": "-6.82%", "Observed Live Paper": f"-{live_avg_loss_pct:.2f}%" if live_losses_pct else "—", "Status": "🟢 Aligned" if not live_losses_pct or (live_avg_loss_pct <= 9.0) else "🔴 Drifted" if live_losses_pct else "🟢 Aligned"},
+    ]
+    
+    drift_df = pd.DataFrame(drift_data)
+    st.table(drift_df)
+    
+    # Calculate simple Drift Health Score
+    if len(closed_trades) < 5:
+        st.info("ℹ️ **Gathering live samples**: Execution drift scoring requires at least 5 closed live paper trades to establish statistical significance.")
+    else:
+        drift_count = sum([1 for d in drift_data if d["Status"] == "🔴 Drifted"])
+        if drift_count == 0:
+            st.success("🟢 **Execution Status: Healthy & Aligned**. Live paper metrics are highly consistent with the backtest baseline.")
+        elif drift_count <= 2:
+            st.warning("🟡 **Execution Status: Minor Drift Detected**. Slight divergence observed in some risk metrics. Monitor closely.")
+        else:
+            st.error("🔴 **Execution Status: Significant Drift!** Core metrics have significantly diverged from the backtest baseline. Inspect execution paths and slippage.")
+            
+    st.write("---")
+    
     # 2. Historical Trade Table
     st.subheader("📚 Chronological Execution Ledger")
     
