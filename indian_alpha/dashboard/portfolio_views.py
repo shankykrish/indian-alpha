@@ -15,10 +15,39 @@ def render_portfolio_panel(portfolio_data: Dict[str, Any]):
     positions = portfolio_data.get("positions")
     if positions is None:
         positions = {}
+    else:
+        import copy
+        positions = copy.deepcopy(positions)
         
-    equity = portfolio_data.get("total_equity")
-    if equity is None:
-        equity = cash
+    # Asynchronously fetch live prices for all positions to show up-to-the-second data in the dashboard
+    if positions:
+        try:
+            import asyncio
+            from indian_alpha.providers.yahoo import YahooFinanceProvider
+            provider = YahooFinanceProvider()
+            
+            async def fetch_all_quotes():
+                tasks = [provider.fetch_quote(sym) for sym in positions.keys()]
+                return await asyncio.gather(*tasks, return_exceptions=True)
+                
+            quotes = asyncio.run(fetch_all_quotes())
+            for i, symbol in enumerate(positions.keys()):
+                quote = quotes[i]
+                if quote and not isinstance(quote, Exception):
+                    price = quote.get("price")
+                    if price and price > 0.0:
+                        positions[symbol]["current_price"] = price
+        except Exception as e:
+            pass
+            
+    # Calculate live equity and valuations based on the latest real-time prices
+    positions_value = 0.0
+    for symbol, pos in positions.items():
+        qty = pos.get("quantity") or 0
+        current_price = pos.get("current_price") or pos.get("entry_price") or 0.0
+        positions_value += qty * current_price
+        
+    equity = cash + positions_value
     
     # Calculate returns
     initial = 1000000.0
@@ -27,7 +56,7 @@ def render_portfolio_panel(portfolio_data: Dict[str, Any]):
     except Exception:
         total_return = 0.0
         
-    holdings_valuation = equity - cash
+    holdings_valuation = positions_value
     
     col1, col2, col3, col4 = st.columns(4)
     with col1:
