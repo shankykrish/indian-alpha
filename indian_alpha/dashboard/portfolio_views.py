@@ -8,13 +8,26 @@ def render_portfolio_panel(portfolio_data: Dict[str, Any]):
     st.header("💼 Live Paper Portfolio Intelligence")
     
     # 1. Metric Summary Bar
-    cash = portfolio_data.get("cash", 1000000.0)
-    positions = portfolio_data.get("positions", {})
-    equity = portfolio_data.get("total_equity", cash)
+    cash = portfolio_data.get("cash")
+    if cash is None:
+        cash = 1000000.0
+        
+    positions = portfolio_data.get("positions")
+    if positions is None:
+        positions = {}
+        
+    equity = portfolio_data.get("total_equity")
+    if equity is None:
+        equity = cash
     
     # Calculate returns
     initial = 1000000.0
-    total_return = ((equity - initial) / initial) * 100.0
+    try:
+        total_return = ((equity - initial) / initial) * 100.0
+    except Exception:
+        total_return = 0.0
+        
+    holdings_valuation = equity - cash
     
     col1, col2, col3, col4 = st.columns(4)
     with col1:
@@ -22,7 +35,7 @@ def render_portfolio_panel(portfolio_data: Dict[str, Any]):
     with col2:
         st.metric("Cash Balance Available", "₹{:,.2f}".format(cash))
     with col3:
-        st.metric("Holdings Valuation", "₹{:,.2f}".format(equity - cash))
+        st.metric("Holdings Valuation", "₹{:,.2f}".format(holdings_valuation))
     with col4:
         st.metric("Active Holdings", f"{len(positions)} Positions")
         
@@ -36,12 +49,24 @@ def render_portfolio_panel(portfolio_data: Dict[str, Any]):
         # Construct positions table
         rows = []
         for symbol, pos in positions.items():
-            entry_price = pos["entry_price"]
-            current_price = pos["current_price"]
-            qty = pos["quantity"]
+            entry_price = pos.get("entry_price")
+            if entry_price is None:
+                entry_price = 0.0
+            current_price = pos.get("current_price")
+            if current_price is None:
+                current_price = 0.0
+            qty = pos.get("quantity")
+            if qty is None:
+                qty = 0
+                
             mtm_value = qty * current_price
-            pnl = pos["unrealized_pnl"]
-            pnl_pct = pos["unrealized_pnl_pct"]
+            
+            pnl = pos.get("unrealized_pnl")
+            if pnl is None:
+                pnl = 0.0
+            pnl_pct = pos.get("unrealized_pnl_pct")
+            if pnl_pct is None:
+                pnl_pct = 0.0
             
             rows.append({
                 "Ticker Symbol": symbol,
@@ -51,7 +76,7 @@ def render_portfolio_panel(portfolio_data: Dict[str, Any]):
                 "Total Value (₹)": f"{mtm_value:,.2f}",
                 "Unrealized P&L (₹)": f"{pnl:+,.2f}",
                 "Return (%)": f"{pnl_pct:+.2f}%",
-                "Sector Theme": pos.get("sector", "Other")
+                "Sector Theme": pos.get("sector") or "Other"
             })
             
         df = pd.DataFrame(rows)

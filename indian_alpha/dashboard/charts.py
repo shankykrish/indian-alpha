@@ -48,6 +48,10 @@ def draw_equity_curve(portfolio_history: List[Dict[str, Any]]) -> go.Figure:
         
     df = pd.DataFrame(portfolio_history)
     df["timestamp"] = pd.to_datetime(df["timestamp"])
+    if "total_equity" in df.columns:
+        df["total_equity"] = pd.to_numeric(df["total_equity"], errors='coerce').ffill().fillna(1000000.0)
+    else:
+        df["total_equity"] = 1000000.0
     
     # Glowing equity curve line
     fig.add_trace(go.Scatter(
@@ -70,6 +74,10 @@ def draw_drawdown_curve(portfolio_history: List[Dict[str, Any]]) -> go.Figure:
         
     df = pd.DataFrame(portfolio_history)
     df["timestamp"] = pd.to_datetime(df["timestamp"])
+    if "total_equity" in df.columns:
+        df["total_equity"] = pd.to_numeric(df["total_equity"], errors='coerce').ffill().fillna(1000000.0)
+    else:
+        df["total_equity"] = 1000000.0
     
     # Calculate drawdowns
     equity = df["total_equity"]

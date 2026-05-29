@@ -145,7 +145,7 @@ def main():
             # Reconstruct history entries from trades to draw simple equity curve
             # If no history written yet, we compile a mock one based on trades PnLs
             closed_trades = [t for t in trades if t.get("action") == "SELL"]
-            history = [{"timestamp": datetime.now() - timedelta(days=len(closed_trades)-i), "total_equity": 1000000.0 + sum([x.get("pnl", 0.0) for x in closed_trades[:i+1]])} for i, t in enumerate(closed_trades)]
+            history = [{"timestamp": datetime.now() - timedelta(days=len(closed_trades)-i), "total_equity": 1000000.0 + sum([(x.get("pnl") if x.get("pnl") is not None else 0.0) for x in closed_trades[:i+1]])} for i, t in enumerate(closed_trades)]
             
             # Include start baseline
             history.insert(0, {"timestamp": datetime.now() - timedelta(days=len(closed_trades)+1), "total_equity": 1000000.0})

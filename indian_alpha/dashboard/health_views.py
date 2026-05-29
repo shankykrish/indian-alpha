@@ -4,8 +4,9 @@ import json
 import psutil
 from datetime import datetime
 from typing import Dict, Any
+from indian_alpha.config import HEARTBEAT_FILE, BASE_STATE_DIR
 
-def render_health_panel(heartbeat_path: str = "/app/state/heartbeat.json"):
+def render_health_panel(heartbeat_path: str = HEARTBEAT_FILE):
     """Displays background scheduler loop heartbeat and system operational parameters."""
     st.header("🩺 System Health & Loop Telemetry")
     
@@ -55,7 +56,7 @@ def render_health_panel(heartbeat_path: str = "/app/state/heartbeat.json"):
     # 2. Disk & Memory usage on volume
     st.subheader("🖥️ Host System Resource Metrics")
     mem = psutil.virtual_memory()
-    disk = psutil.disk_usage("/app/state" if os.path.exists("/app/state") else ".")
+    disk = psutil.disk_usage(BASE_STATE_DIR if os.path.exists(BASE_STATE_DIR) else ".")
     
     res1, res2 = st.columns(2)
     with res1:
