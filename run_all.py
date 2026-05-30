@@ -64,6 +64,26 @@ def initialize_volume_state():
             else:
                 logger.info(f"Config file {filename} already exists at {target_path}")
 
+    # 3. Self-healing check: Ensure active provider is set to 'zerodha' on Railway
+    target_path = os.path.join(state_dir, "strategy.yaml")
+    if os.path.exists(target_path):
+        try:
+            import yaml
+            with open(target_path, "r") as f:
+                strategy_data = yaml.safe_load(f)
+            
+            if strategy_data:
+                provider = strategy_data.get("market_data", {}).get("provider", "").lower()
+                if provider != "zerodha":
+                    if "market_data" not in strategy_data:
+                        strategy_data["market_data"] = {}
+                    strategy_data["market_data"]["provider"] = "zerodha"
+                    with open(target_path, "w") as f:
+                        yaml.safe_dump(strategy_data, f, default_flow_style=False)
+                    logger.info("Self-healing: Switched strategy.yaml provider to 'zerodha' on Railway.")
+        except Exception as e:
+            logger.error(f"Error self-healing strategy.yaml provider: {e}")
+
 def main():
     logger.info("Starting Indian-Alpha Orchestrator...")
     
