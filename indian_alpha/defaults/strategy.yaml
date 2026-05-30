@@ -1,4 +1,4 @@
-version: "02"
+version: "03"
 
 strategy_type: momentum_breakout
 
@@ -10,8 +10,8 @@ entry:
   breakout_period: 55                      # Use a longer lookback to avoid noise
   rsi_min: 60
   momentum_quality_min: 75
-  relative_strength_vs_nifty_min: 70
-  relative_strength_vs_sector_min: 65
+  relative_strength_vs_nifty_min: 12.0
+  relative_strength_vs_sector_min: 6.0
   
   # Volume & Delivery Confirmation
   volume_expansion_ratio: 1.8
