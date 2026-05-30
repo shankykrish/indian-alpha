@@ -2,6 +2,7 @@ import streamlit as st
 import os
 import json
 from loguru import logger
+from datetime import datetime, timedelta
 
 # Set page config at the very top
 st.set_page_config(
@@ -199,5 +200,4 @@ def main():
         render_health_panel()
 
 if __name__ == "__main__":
-    from datetime import datetime, timedelta
     main()

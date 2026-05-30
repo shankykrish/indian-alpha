@@ -20,6 +20,7 @@ dependencies = [
     "streamlit>=1.30.0",
     "plotly>=5.18.0",
     "psutil",
+    "kiteconnect>=5.2.0",
 ]
 
 [build-system]

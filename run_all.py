@@ -80,6 +80,7 @@ def main():
 
     # 2. Start the Streamlit dashboard service
     logger.info("Launching Streamlit dashboard...")
+    port = os.getenv("PORT", "8501")
     dashboard = subprocess.Popen(
         [
             sys.executable,
@@ -88,7 +89,7 @@ def main():
             "run",
             "indian_alpha/dashboard/app.py",
             "--server.port",
-            "8501",
+            port,
             "--server.address",
             "0.0.0.0"
         ],

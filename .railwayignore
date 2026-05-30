@@ -1,5 +1,5 @@
-.venv/
-state/
-__pycache__/
-.git/
+.venv
+state
+__pycache__
+.git
 uv.lock
