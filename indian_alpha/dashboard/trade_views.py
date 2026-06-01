@@ -106,17 +106,9 @@ def render_trade_journal_panel(trades: List[Dict[str, Any]]):
             pass
             
     # Read Zerodha session state
-    from indian_alpha.config import BASE_STATE_DIR
-    session_path = os.path.join(BASE_STATE_DIR, "zerodha_session.json")
-    zerodha_active = False
-    if os.path.exists(session_path):
-        try:
-            with open(session_path, "r") as f:
-                session = json.load(f)
-            if session.get("access_token"):
-                zerodha_active = True
-        except Exception:
-            pass
+    from indian_alpha.providers.loader import get_active_provider
+    provider = get_active_provider()
+    zerodha_active = provider.is_connected() if hasattr(provider, "is_connected") else False
             
     op_col1, op_col2, op_col3 = st.columns(3)
     with op_col1:
