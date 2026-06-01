@@ -97,6 +97,30 @@ from indian_alpha.storage.market_regimes import load_regimes_history
 from indian_alpha.storage.snapshots import load_latest_portfolio_snapshot
 
 def main():
+    # Security check: If DASHBOARD_PASSWORD is set in the environment, restrict dashboard visibility
+    target_password = os.environ.get("DASHBOARD_PASSWORD")
+    if target_password:
+        if not st.session_state.get("authenticated", False):
+            st.markdown("""
+            <div style="text-align: center; margin-top: 100px;">
+                <h1 style="font-size: 2.5rem; margin-bottom: 10px; background: linear-gradient(135deg, #ff3366 0%, #ff6633 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">🔒 Access Restricted</h1>
+                <p style="color: #a0a0c0; margin-bottom: 30px;">This Indian-Alpha instance is protected. Enter password to view dashboard.</p>
+            </div>
+            """, unsafe_allow_html=True)
+            
+            col1, col2, col3 = st.columns([1, 1.5, 1])
+            with col2:
+                with st.form("login_form", clear_on_submit=False):
+                    passwd = st.text_input("Enter Dashboard Password", type="password")
+                    submit = st.form_submit_button("Authenticate")
+                    if submit:
+                        if passwd == target_password:
+                            st.session_state["authenticated"] = True
+                            st.rerun()
+                        else:
+                            st.error("❌ Invalid password. Access denied.")
+            return
+
     st.sidebar.markdown("# 🎯 Indian-Alpha")
     st.sidebar.markdown("### Self-Learning Quantitative Platform")
     st.sidebar.write("---")
