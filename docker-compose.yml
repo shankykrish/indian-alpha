@@ -6,6 +6,7 @@ services:
     container_name: indian-alpha-worker
     volumes:
       - ./state:/app/state
+      - ./.env:/app/.env
     environment:
       - TZ=Asia/Kolkata
       - PYTHONUNBUFFERED=1
@@ -19,6 +20,7 @@ services:
       - "8501:8501"
     volumes:
       - ./state:/app/state
+      - ./.env:/app/.env
     environment:
       - TZ=Asia/Kolkata
       - PYTHONUNBUFFERED=1
