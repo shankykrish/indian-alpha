@@ -21,6 +21,7 @@ class ZerodhaProvider(MarketDataProvider):
         self.api_secret = os.getenv("ZERODHA_API_SECRET")
         self.access_token = None
         self.kite: Optional[KiteConnect] = None
+        self._last_session_check = datetime.now()
         
         # Load persistent credentials session if active
         self._load_cached_session()
@@ -68,6 +69,12 @@ class ZerodhaProvider(MarketDataProvider):
 
     def is_connected(self) -> bool:
         """Returns True if the Zerodha Kite Connect client is actively authenticated."""
+        if self.kite is None or self.access_token is None:
+            # 60-second cooldown between disk checks to prevent log flooding and excessive disk I/O
+            now = datetime.now()
+            if not hasattr(self, '_last_session_check') or (now - self._last_session_check).total_seconds() > 60:
+                self._last_session_check = now
+                self._load_cached_session()
         return self.kite is not None and self.access_token is not None
 
     def _load_cached_session(self) -> None:

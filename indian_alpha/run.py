@@ -113,10 +113,13 @@ class IndianAlphaWorker:
                 logger.info(f"Next trigger scheduled at: {next_trigger.strftime('%Y-%m-%d %H:%M:%S %Z')}")
                 logger.info(f"Execution cycle complete. Sleeping for {delay} seconds...")
                 
-                # Sleep in smaller increments to check shutdown status
-                for _ in range(delay // 10):
+                # Sleep in smaller increments to check shutdown status and update heartbeat
+                for i in range(delay // 10):
                     if not self.running:
                         break
+                    # Keep the heartbeat fresh while sleeping (update every 60 seconds / 6 ticks)
+                    if i % 6 == 0:
+                        write_heartbeat(mode, "healthy")
                     await asyncio.sleep(10)
                     
             except Exception as e:
