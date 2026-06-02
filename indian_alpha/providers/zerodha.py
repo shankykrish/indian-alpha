@@ -21,6 +21,7 @@ class ZerodhaProvider(MarketDataProvider):
         self.api_secret = os.getenv("ZERODHA_API_SECRET")
         self.access_token = None
         self.kite: Optional[KiteConnect] = None
+        self.session_created_at: Optional[datetime] = None
         self._last_session_check = datetime.now()
         
         # Load persistent credentials session if active
@@ -48,6 +49,7 @@ class ZerodhaProvider(MarketDataProvider):
             session_data = kite_client.generate_session(request_token, api_secret=self.api_secret)
             
             self.access_token = session_data["access_token"]
+            self.session_created_at = datetime.now()
             self.kite = kite_client
             self.kite.set_access_token(self.access_token)
             
@@ -56,7 +58,7 @@ class ZerodhaProvider(MarketDataProvider):
             session_file = os.path.join(BASE_STATE_DIR, "zerodha_session.json")
             cache_data = {
                 "access_token": self.access_token,
-                "created_at": datetime.now().isoformat()
+                "created_at": self.session_created_at.isoformat()
             }
             with open(session_file, "w") as f:
                 json.dump(cache_data, f, indent=2)
@@ -69,13 +71,56 @@ class ZerodhaProvider(MarketDataProvider):
 
     def is_connected(self) -> bool:
         """Returns True if the Zerodha Kite Connect client is actively authenticated."""
-        if self.kite is None or self.access_token is None:
-            # 60-second cooldown between disk checks to prevent log flooding and excessive disk I/O
-            now = datetime.now()
+        now = datetime.now()
+        
+        # Check if the in-memory session is older than the daily 6:00 AM IST expiration boundary
+        session_expired = True
+        if self.session_created_at is not None:
+            six_am_today = datetime(now.year, now.month, now.day, 6, 0, 0)
+            if now >= six_am_today:
+                session_expired = self.session_created_at < six_am_today
+            else:
+                six_am_yesterday = six_am_today - timedelta(days=1)
+                session_expired = self.session_created_at < six_am_yesterday
+
+        # Check the disk if we don't have a token, if it expired,
+        # or periodically (every 60s) to see if another process (like Streamlit) refreshed it.
+        should_check_disk = self.kite is None or self.access_token is None or session_expired
+        
+        if not should_check_disk:
+            # Periodic check for token updates from other processes
             if not hasattr(self, '_last_session_check') or (now - self._last_session_check).total_seconds() > 60:
                 self._last_session_check = now
-                self._load_cached_session()
-        return self.kite is not None and self.access_token is not None
+                from indian_alpha.config import BASE_STATE_DIR
+                session_file = os.path.join(BASE_STATE_DIR, "zerodha_session.json")
+                if os.path.exists(session_file):
+                    try:
+                        with open(session_file, "r") as f:
+                            cache_data = json.load(f)
+                        disk_token = cache_data.get("access_token")
+                        if disk_token and disk_token != self.access_token:
+                            logger.info("Detected new Zerodha session token on disk. Hot-reloading...")
+                            should_check_disk = True
+                    except Exception:
+                        pass
+
+        if should_check_disk:
+            if not hasattr(self, '_last_session_check') or (now - self._last_session_check).total_seconds() > 60:
+                self._last_session_check = now
+            self._load_cached_session()
+            
+            # Re-evaluate session expiration status after reload
+            if self.session_created_at is not None:
+                six_am_today = datetime(now.year, now.month, now.day, 6, 0, 0)
+                if now >= six_am_today:
+                    session_expired = self.session_created_at < six_am_today
+                else:
+                    six_am_yesterday = six_am_today - timedelta(days=1)
+                    session_expired = self.session_created_at < six_am_yesterday
+            else:
+                session_expired = True
+                
+        return self.kite is not None and self.access_token is not None and not session_expired
 
     def _load_cached_session(self) -> None:
         """Loads and validates a cached daily Zerodha session token from disk."""
@@ -110,11 +155,15 @@ class ZerodhaProvider(MarketDataProvider):
                 
             if is_valid:
                 self.access_token = cache_data.get("access_token")
+                self.session_created_at = created_at
                 if self.api_key and self.access_token:
                     self.kite = KiteConnect(api_key=self.api_key)
                     self.kite.set_access_token(self.access_token)
                     logger.info("Re-authenticated actively using cached daily Zerodha session token.")
             else:
+                self.access_token = None
+                self.kite = None
+                self.session_created_at = None
                 logger.warning("Cached Zerodha session token has expired. A new daily login is required.")
         except Exception as e:
             logger.error(f"Failed to parse cached Zerodha session token: {e}")
@@ -217,6 +266,11 @@ class ZerodhaProvider(MarketDataProvider):
             return df
         except Exception as e:
             logger.error(f"Error fetching OHLCV data from Zerodha for {symbol}: {e}")
+            if any(err in str(e).lower() for err in ["access_token", "api_key", "incorrect", "token"]):
+                logger.warning("Clearing invalid in-memory Zerodha session credentials.")
+                self.access_token = None
+                self.kite = None
+                self.session_created_at = None
             from indian_alpha.providers.yahoo import YahooFinanceProvider
             fallback = YahooFinanceProvider()
             return await fallback.fetch_ohlcv(symbol, start_date, end_date, interval)
@@ -271,6 +325,11 @@ class ZerodhaProvider(MarketDataProvider):
             }
         except Exception as e:
             logger.error(f"Failed to fetch live quote from Zerodha for {symbol}: {e}")
+            if any(err in str(e).lower() for err in ["access_token", "api_key", "incorrect", "token"]):
+                logger.warning("Clearing invalid in-memory Zerodha session credentials.")
+                self.access_token = None
+                self.kite = None
+                self.session_created_at = None
             from indian_alpha.providers.yahoo import YahooFinanceProvider
             fallback = YahooFinanceProvider()
             return await fallback.fetch_quote(symbol)
@@ -321,7 +380,11 @@ class ZerodhaProvider(MarketDataProvider):
                 return float(vix_val)
         except Exception as e:
             logger.warning(f"Failed to fetch India VIX from Zerodha Kite Connect: {e}")
-            
+            if any(err in str(e).lower() for err in ["access_token", "api_key", "incorrect", "token"]):
+                logger.warning("Clearing invalid in-memory Zerodha session credentials.")
+                self.access_token = None
+                self.kite = None
+                self.session_created_at = None
         from indian_alpha.providers.yahoo import YahooFinanceProvider
         fallback = YahooFinanceProvider()
         return await fallback.fetch_vix()
