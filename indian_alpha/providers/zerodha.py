@@ -271,6 +271,11 @@ class ZerodhaProvider(MarketDataProvider):
                 self.access_token = None
                 self.kite = None
                 self.session_created_at = None
+                from indian_alpha.observability.alerts import send_alert
+                await send_alert(
+                    f"Zerodha Kite API session has expired or is invalid. Gracefully fell back to Yahoo Finance feed for historical scan of {symbol}. Please authenticate at https://shanky-alpha.duckdns.org/",
+                    level="WARNING"
+                )
             from indian_alpha.providers.yahoo import YahooFinanceProvider
             fallback = YahooFinanceProvider()
             return await fallback.fetch_ohlcv(symbol, start_date, end_date, interval)
@@ -330,6 +335,11 @@ class ZerodhaProvider(MarketDataProvider):
                 self.access_token = None
                 self.kite = None
                 self.session_created_at = None
+                from indian_alpha.observability.alerts import send_alert
+                await send_alert(
+                    f"Zerodha Kite API session has expired or is invalid. Gracefully fell back to Yahoo Finance feed for live quote of {symbol}. Please authenticate at https://shanky-alpha.duckdns.org/",
+                    level="WARNING"
+                )
             from indian_alpha.providers.yahoo import YahooFinanceProvider
             fallback = YahooFinanceProvider()
             return await fallback.fetch_quote(symbol)
@@ -385,6 +395,11 @@ class ZerodhaProvider(MarketDataProvider):
                 self.access_token = None
                 self.kite = None
                 self.session_created_at = None
+                from indian_alpha.observability.alerts import send_alert
+                await send_alert(
+                    "Zerodha Kite API session has expired or is invalid. Gracefully fell back to Yahoo Finance feed for India VIX. Please authenticate at https://shanky-alpha.duckdns.org/",
+                    level="WARNING"
+                )
         from indian_alpha.providers.yahoo import YahooFinanceProvider
         fallback = YahooFinanceProvider()
         return await fallback.fetch_vix()
