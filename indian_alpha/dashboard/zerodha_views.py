@@ -30,6 +30,12 @@ def render_zerodha_auth_sidebar():
     query_params = st.query_params
     if "request_token" in query_params:
         request_token = query_params["request_token"]
+        
+        # Check if we have already processed this token to prevent concurrent double-exchange calls
+        if st.session_state.get("processed_request_token") == request_token:
+            return
+            
+        st.session_state["processed_request_token"] = request_token
         st.sidebar.info("🔄 Capturing login redirect...")
         
         # Authenticate and cache access token
