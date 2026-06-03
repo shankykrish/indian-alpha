@@ -109,7 +109,7 @@ class IndianMarketScheduler:
         """
         Calculates the absolute datetime of the very next execution tick.
         During active trading day (09:00 - 15:30 IST): ticks every 30 mins (09:00, 09:30, ..., 15:00) and a final one at 15:25.
-        Post-market: runs once at 15:35.
+        Post-market: runs once at 15:45.
         Weekend/Standby: runs once daily at 09:00 AM.
         """
         now = self.get_current_ist_time()
@@ -145,7 +145,7 @@ class IndianMarketScheduler:
         # Define milestones
         market_open = at_time(now.date(), 9, 0)
         market_close_scan = at_time(now.date(), 15, 25)
-        post_market_time = at_time(now.date(), 15, 35)
+        post_market_time = at_time(now.date(), 15, 45)
         
         if now < market_open:
             return market_open
