@@ -1,9 +1,14 @@
 import sys
 import os
+from typing import Optional
 from loguru import logger
+from indian_alpha.config import HISTORY_DIR
 
-def setup_logging(log_file: str = "/app/state/history/app.log") -> None:
+def setup_logging(log_file: Optional[str] = None) -> None:
     """Configures Loguru logger for console output and a persistent file log."""
+    if log_file is None:
+        log_file = os.path.join(HISTORY_DIR, "app.log")
+        
     # Ensure logs directory exists
     log_dir = os.path.dirname(log_file)
     if log_dir:

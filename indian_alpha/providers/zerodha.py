@@ -22,7 +22,10 @@ class ZerodhaProvider(MarketDataProvider):
         self.access_token = None
         self.kite: Optional[KiteConnect] = None
         self.session_created_at: Optional[datetime] = None
-        self._last_session_check = datetime.now()
+        
+        import pytz
+        tz = pytz.timezone("Asia/Kolkata")
+        self._last_session_check = datetime.now(tz)
         
         # Load persistent credentials session if active
         self._load_cached_session()
@@ -48,8 +51,10 @@ class ZerodhaProvider(MarketDataProvider):
             kite_client = KiteConnect(api_key=self.api_key)
             session_data = kite_client.generate_session(request_token, api_secret=self.api_secret)
             
+            import pytz
+            tz = pytz.timezone("Asia/Kolkata")
             self.access_token = session_data["access_token"]
-            self.session_created_at = datetime.now()
+            self.session_created_at = datetime.now(tz)
             self.kite = kite_client
             self.kite.set_access_token(self.access_token)
             
@@ -71,17 +76,20 @@ class ZerodhaProvider(MarketDataProvider):
 
     def is_connected(self) -> bool:
         """Returns True if the Zerodha Kite Connect client is actively authenticated."""
-        now = datetime.now()
+        import pytz
+        tz = pytz.timezone("Asia/Kolkata")
+        now = datetime.now(tz)
         
         # Check if the in-memory session is older than the daily 6:00 AM IST expiration boundary
         session_expired = True
         if self.session_created_at is not None:
-            six_am_today = datetime(now.year, now.month, now.day, 6, 0, 0)
+            session_created_at_ist = self.session_created_at.astimezone(tz) if self.session_created_at.tzinfo else self.session_created_at.replace(tzinfo=tz)
+            six_am_today = datetime(now.year, now.month, now.day, 6, 0, 0, tzinfo=tz)
             if now >= six_am_today:
-                session_expired = self.session_created_at < six_am_today
+                session_expired = session_created_at_ist < six_am_today
             else:
                 six_am_yesterday = six_am_today - timedelta(days=1)
-                session_expired = self.session_created_at < six_am_yesterday
+                session_expired = session_created_at_ist < six_am_yesterday
 
         # Check the disk if we don't have a token, if it expired,
         # or periodically (every 60s) to see if another process (like Streamlit) refreshed it.
@@ -89,7 +97,10 @@ class ZerodhaProvider(MarketDataProvider):
         
         if not should_check_disk:
             # Periodic check for token updates from other processes
-            if not hasattr(self, '_last_session_check') or (now - self._last_session_check).total_seconds() > 60:
+            last_check = self._last_session_check
+            if last_check.tzinfo is None:
+                last_check = last_check.replace(tzinfo=tz)
+            if not hasattr(self, '_last_session_check') or (now - last_check).total_seconds() > 60:
                 self._last_session_check = now
                 from indian_alpha.config import BASE_STATE_DIR
                 session_file = os.path.join(BASE_STATE_DIR, "zerodha_session.json")
@@ -105,18 +116,23 @@ class ZerodhaProvider(MarketDataProvider):
                         pass
 
         if should_check_disk:
-            if not hasattr(self, '_last_session_check') or (now - self._last_session_check).total_seconds() > 60:
+            last_check = self._last_session_check
+            if last_check.tzinfo is None:
+                last_check = last_check.replace(tzinfo=tz)
+            time_since_check = (now - last_check).total_seconds() if hasattr(self, '_last_session_check') else 999.0
+            if time_since_check > 5:  # 5-second cooldown to prevent spamming disk reads during a single loop scan
                 self._last_session_check = now
-            self._load_cached_session()
+                self._load_cached_session()
             
             # Re-evaluate session expiration status after reload
             if self.session_created_at is not None:
-                six_am_today = datetime(now.year, now.month, now.day, 6, 0, 0)
+                session_created_at_ist = self.session_created_at.astimezone(tz) if self.session_created_at.tzinfo else self.session_created_at.replace(tzinfo=tz)
+                six_am_today = datetime(now.year, now.month, now.day, 6, 0, 0, tzinfo=tz)
                 if now >= six_am_today:
-                    session_expired = self.session_created_at < six_am_today
+                    session_expired = session_created_at_ist < six_am_today
                 else:
                     six_am_yesterday = six_am_today - timedelta(days=1)
-                    session_expired = self.session_created_at < six_am_yesterday
+                    session_expired = session_created_at_ist < six_am_yesterday
             else:
                 session_expired = True
                 
@@ -127,8 +143,20 @@ class ZerodhaProvider(MarketDataProvider):
         from indian_alpha.config import BASE_STATE_DIR
         session_file = os.path.join(BASE_STATE_DIR, "zerodha_session.json")
         
+        import pytz
+        tz = pytz.timezone("Asia/Kolkata")
+        now = datetime.now(tz)
+        
         if not os.path.exists(session_file):
             logger.warning("No Zerodha session file found. System is waiting for initial login.")
+            today_str = now.strftime("%Y-%m-%d")
+            if getattr(self, "_last_expiry_alert_date", None) != today_str:
+                self._last_expiry_alert_date = today_str
+                from indian_alpha.observability.alerts import send_alert_sync
+                send_alert_sync(
+                    "No Zerodha session file found. System is waiting for initial login. Please authenticate at https://shanky-alpha.duckdns.org/",
+                    level="WARNING"
+                )
             return
             
         try:
@@ -140,22 +168,22 @@ class ZerodhaProvider(MarketDataProvider):
                 return
                 
             created_at = datetime.fromisoformat(created_at_str)
-            now = datetime.now()
+            created_at_ist = created_at.astimezone(tz) if created_at.tzinfo else created_at.replace(tzinfo=tz)
             
             # Zerodha API sessions expire daily at 6:00 AM IST
-            six_am_today = datetime(now.year, now.month, now.day, 6, 0, 0)
+            six_am_today = datetime(now.year, now.month, now.day, 6, 0, 0, tzinfo=tz)
             
-            # Determine validity boundary based on current time
+            # Determine validity boundary based on current time in IST
             is_valid = False
             if now >= six_am_today:
-                is_valid = created_at >= six_am_today
+                is_valid = created_at_ist >= six_am_today
             else:
                 six_am_yesterday = six_am_today - timedelta(days=1)
-                is_valid = created_at >= six_am_yesterday
+                is_valid = created_at_ist >= six_am_yesterday
                 
             if is_valid:
                 self.access_token = cache_data.get("access_token")
-                self.session_created_at = created_at
+                self.session_created_at = created_at_ist
                 if self.api_key and self.access_token:
                     self.kite = KiteConnect(api_key=self.api_key)
                     self.kite.set_access_token(self.access_token)
@@ -165,8 +193,32 @@ class ZerodhaProvider(MarketDataProvider):
                 self.kite = None
                 self.session_created_at = None
                 logger.warning("Cached Zerodha session token has expired. A new daily login is required.")
+                today_str = now.strftime("%Y-%m-%d")
+                if getattr(self, "_last_expiry_alert_date", None) != today_str:
+                    self._last_expiry_alert_date = today_str
+                    from indian_alpha.observability.alerts import send_alert_sync
+                    send_alert_sync(
+                        "Cached Zerodha session token has expired. A new daily login is required. Please authenticate at https://shanky-alpha.duckdns.org/",
+                        level="WARNING"
+                    )
         except Exception as e:
             logger.error(f"Failed to parse cached Zerodha session token: {e}")
+
+    def _clear_session(self) -> None:
+        """Clears both in-memory credentials and deletes the cached session file on disk."""
+        logger.warning("Clearing and removing Zerodha session from memory and disk.")
+        self.access_token = None
+        self.kite = None
+        self.session_created_at = None
+        
+        from indian_alpha.config import BASE_STATE_DIR
+        session_file = os.path.join(BASE_STATE_DIR, "zerodha_session.json")
+        if os.path.exists(session_file):
+            try:
+                os.remove(session_file)
+                logger.info("Successfully deleted invalid Zerodha session file from disk.")
+            except Exception as e:
+                logger.error(f"Failed to delete invalid Zerodha session file from disk: {e}")
 
     def _load_or_fetch_instrument_tokens(self) -> Dict[str, int]:
         """
@@ -267,10 +319,7 @@ class ZerodhaProvider(MarketDataProvider):
         except Exception as e:
             logger.error(f"Error fetching OHLCV data from Zerodha for {symbol}: {e}")
             if any(err in str(e).lower() for err in ["access_token", "api_key", "incorrect", "token"]):
-                logger.warning("Clearing invalid in-memory Zerodha session credentials.")
-                self.access_token = None
-                self.kite = None
-                self.session_created_at = None
+                self._clear_session()
                 from indian_alpha.observability.alerts import send_alert
                 await send_alert(
                     f"Zerodha Kite API session has expired or is invalid. Gracefully fell back to Yahoo Finance feed for historical scan of {symbol}. Please authenticate at https://shanky-alpha.duckdns.org/",
@@ -331,10 +380,7 @@ class ZerodhaProvider(MarketDataProvider):
         except Exception as e:
             logger.error(f"Failed to fetch live quote from Zerodha for {symbol}: {e}")
             if any(err in str(e).lower() for err in ["access_token", "api_key", "incorrect", "token"]):
-                logger.warning("Clearing invalid in-memory Zerodha session credentials.")
-                self.access_token = None
-                self.kite = None
-                self.session_created_at = None
+                self._clear_session()
                 from indian_alpha.observability.alerts import send_alert
                 await send_alert(
                     f"Zerodha Kite API session has expired or is invalid. Gracefully fell back to Yahoo Finance feed for live quote of {symbol}. Please authenticate at https://shanky-alpha.duckdns.org/",
@@ -391,10 +437,7 @@ class ZerodhaProvider(MarketDataProvider):
         except Exception as e:
             logger.warning(f"Failed to fetch India VIX from Zerodha Kite Connect: {e}")
             if any(err in str(e).lower() for err in ["access_token", "api_key", "incorrect", "token"]):
-                logger.warning("Clearing invalid in-memory Zerodha session credentials.")
-                self.access_token = None
-                self.kite = None
-                self.session_created_at = None
+                self._clear_session()
                 from indian_alpha.observability.alerts import send_alert
                 await send_alert(
                     "Zerodha Kite API session has expired or is invalid. Gracefully fell back to Yahoo Finance feed for India VIX. Please authenticate at https://shanky-alpha.duckdns.org/",
