@@ -280,6 +280,14 @@ class ZerodhaProvider(MarketDataProvider):
             token = token_map.get(clean_sym)
             
             if not token:
+                # Try finding a matching symbol with a series suffix (e.g., -BE, -BZ, -ST)
+                suffix_matches = [k for k in token_map.keys() if k.startswith(f"{clean_sym}-") and not k.endswith(".NS")]
+                if suffix_matches:
+                    clean_sym = suffix_matches[0]
+                    token = token_map.get(clean_sym)
+                    logger.info(f"Resolved base symbol {symbol} to Zerodha suffix variant: {clean_sym}")
+            
+            if not token:
                 logger.warning(f"Symbol {symbol} not recognized in Zerodha equities. Trying Yahoo.")
                 from indian_alpha.providers.yahoo import YahooFinanceProvider
                 fallback = YahooFinanceProvider()
@@ -340,6 +348,14 @@ class ZerodhaProvider(MarketDataProvider):
             token_map = self._load_or_fetch_instrument_tokens()
             clean_sym = symbol.strip().upper().replace(".NS", "")
             token = token_map.get(clean_sym)
+            
+            if not token:
+                # Try finding a matching symbol with a series suffix (e.g., -BE, -BZ, -ST)
+                suffix_matches = [k for k in token_map.keys() if k.startswith(f"{clean_sym}-") and not k.endswith(".NS")]
+                if suffix_matches:
+                    clean_sym = suffix_matches[0]
+                    token = token_map.get(clean_sym)
+                    logger.info(f"Resolved base symbol {symbol} to Zerodha suffix variant: {clean_sym}")
             
             if not token:
                 from indian_alpha.providers.yahoo import YahooFinanceProvider
