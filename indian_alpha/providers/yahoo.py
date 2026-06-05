@@ -270,22 +270,33 @@ class YahooFinanceProvider(MarketDataProvider):
         # Map indices to Yahoo Tickers
         index_map = {
             "NIFTY50": "^NSEI",
-            "NIFTY_NEXT_50": "^NSMIDCP", # Best Yahoo proxy
+            "NIFTY_NEXT_50": "^NSMIDCP",        # Best Yahoo proxy
             "NIFTY_MIDCAP_100": "^NSEMDCP100",
-            "NIFTY_SMALLCAP_250": "^CNXSC",
+            "NIFTY_SMALLCAP_250": "^CNXSC",     # Nifty Smallcap 100 (best available proxy)
             "VIX": "^INDIAVIX"
         }
         ticker = index_map.get(symbol, symbol)
-        
+
         def _fetch():
-            t = yf.Ticker(ticker)
-            return t.history(start=start_date, end=end_date)
-            
+            # Use yf.download() which is more reliable for index tickers than Ticker.history()
+            df = yf.download(ticker, start=start_date, end=end_date, auto_adjust=True, progress=False)
+            return df
+
         try:
             df = await self._execute_with_retry(_fetch)
             if df.empty:
-                logger.warning(f"No index data returned for {ticker}")
-                return pd.DataFrame()
+                # Fallback: try alternate smallcap ticker
+                if ticker == "^CNXSC":
+                    logger.warning(f"^CNXSC returned empty — retrying with ^CNXSC100 as fallback")
+                    def _fetch_fallback():
+                        return yf.download("^CNXSC100", start=start_date, end=end_date, auto_adjust=True, progress=False)
+                    df = await self._execute_with_retry(_fetch_fallback)
+                if df.empty:
+                    logger.warning(f"No index data returned for {ticker}")
+                    return pd.DataFrame()
+            # Flatten MultiIndex columns if produced by yf.download()
+            if isinstance(df.columns, pd.MultiIndex):
+                df.columns = [col[0] for col in df.columns]
             df.columns = [c.lower() for c in df.columns]
             return df
         except Exception as e:
@@ -316,7 +327,7 @@ class YahooFinanceProvider(MarketDataProvider):
     async def fetch_market_breadth(self) -> Dict[str, Any]:
         """Calculate market breadth metrics dynamically based on a core basket of NIFTY stocks"""
         # We sample 10 major NIFTY stocks to construct a real-time proxy for breadth
-        basket = ["RELIANCE.NS", "TCS.NS", "INFY.NS", "HDFCBANK.NS", "ICICIBANK.NS", "LTIM.NS", "HAL.NS", "BEL.NS", "RVNL.NS", "ITC.NS"]
+        basket = ["RELIANCE.NS", "TCS.NS", "INFY.NS", "HDFCBANK.NS", "ICICIBANK.NS", "LTM.NS", "HAL.NS", "BEL.NS", "RVNL.NS", "ITC.NS"]
         
         above_50dma_count = 0
         advancing_count = 0
