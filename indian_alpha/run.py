@@ -180,6 +180,7 @@ class IndianAlphaWorker:
             
             df = await self.provider.fetch_ohlcv(symbol, start, end)
             fund = await self.provider.fetch_fundamentals(symbol)
+            await asyncio.sleep(0.4)  # Rate-limiting delay to respect Zerodha 3 RPS limit
             
             # Mark price updates for mark-to-market valuations
             if symbol in self.portfolio.positions:
